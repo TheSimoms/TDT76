@@ -1,72 +1,111 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import sys
-import os.path
 import logging
-
-import numpy as np
 import tensorflow as tf
 
-from tensorflow.contrib.slim.python.slim.nets import inception
-from tensorflow.python.training import saver as tf_saver
-
-from utils import preprocess_image
+from utils import generate_dict_from_directory, get_images_in_path
+from classifier import get_bottleneck
 
 
-slim = tf.contrib.slim
+class Layer:
+    def __init__(self, output_size, activation=tf.nn.relu):
+        self.output_size = output_size
+        self.activation = activation
 
 
-def retrieve_similar_images(image_path, args):
+def generate_training_data_set(path, args):
     """
-    Return similar images for query image.
+    Generate data set used for training the model.
 
-    :param image_path: Path to query image
-    :param args: Run-time arguments
-    :return: List of images similar to query image
-    """
-
-    bottleneck = classify_image(image_path, args)
-
-    if bottleneck is None:
-        return []
-
-    return []
-
-
-def classify_image(image_path, args):
-    """
-    Classify image.
-
-    :param image_path: Path to query image
-    :param args: Run-time arguments
-    :return: Bottleneck layer values for query image
+    :param path: Path containing the data
+    :return: Data set in format [[input][labels]]
     """
 
-    if not os.path.exists(args.checkpoint):
-        logging.critical('Checkpoint %s does not exist' % args.checkpoint)
+    logging.debug('Generating training data set for %s' % path)
 
-        sys.exit(1)
+    ids = []
+    labels = []
 
-    g = tf.Graph()
+    label_dict = generate_dict_from_directory(args.train_path)
 
-    with g.as_default():
-        input_image = preprocess_image(image_path)
+    for image_path, _, image_id in get_images_in_path(path):
+        if image_id not in label_dict:
+            continue
 
-        if input_image is None:
-            return
+        ids.append(get_bottleneck(image_id, image_path, args))
+        labels.append(label_dict[image_id])
 
-        with slim.arg_scope(inception.inception_v3_arg_scope()):
-            logits, end_points = inception.inception_v3(
-                input_image, num_classes=6012, is_training=False
-            )
+    return ids, labels
 
-        predictions = end_points['PreLogits']
 
-        saver = tf_saver.Saver()
-        sess = tf.Session()
-        saver.restore(sess, args.checkpoint)
+def setup_layer(input_size, output_size, activation, previous_layer):
+    output = tf.add(
+        tf.matmul(
+            previous_layer, tf.Variable(tf.random_normal([input_size, output_size]))
+        ),
+        tf.Variable(tf.random_normal([output_size]))
+    )
 
-        # Run the evaluation on the image
-        return np.squeeze(sess.run(predictions))
+    if activation is None:
+        return output
+
+    return activation(output)
+
+
+def setup_network(input_size, output_size, hidden_layers, args):
+    logging.debug('Setting up network')
+
+    x = tf.placeholder('float', [None, input_size])
+    y = tf.placeholder('float', [None, output_size])
+
+    previous_layer = setup_layer(
+        input_size, hidden_layers[0].output_size, hidden_layers[0].activation, x
+    )
+
+    for i in range(1, len(hidden_layers)):
+        previous_layer = setup_layer(
+            hidden_layers[i - 1].output_size, hidden_layers[i].output_size,
+            hidden_layers[i].activation, previous_layer
+        )
+
+    output_layer = setup_layer(
+        hidden_layers[-1].output_size, output_size, None, previous_layer
+    )
+
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(output_layer, y))
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=args.learning_rate).minimize(cost)
+
+    return x, y, output_layer, cost, optimizer
+
+
+def train_network(network, training_data, validation_data, args):
+    logging.info('Training model')
+
+    x, y, output_layer, cost_function, optimizer = network
+
+    init = tf.initialize_all_variables()
+    saver = tf.train.Saver()
+
+    with tf.Session() as sess:
+        sess.run(init)
+
+        number_of_batches = int(len(training_data) / args.batch_size)
+
+        for epoch in range(args.training_epochs):
+            avreage_cost = 0.0
+
+            for i in range(0, number_of_batches):
+                offset = i * args.batch_size
+
+                x_ = training_data[0][offset:offset + args.batch_size]
+                y_ = training_data[1][offset:offset + args.batch_size]
+
+                _, cost = sess.run([optimizer, cost_function], feed_dict={x: x_, y: y_})
+                avreage_cost += cost / number_of_batches
+
+            if epoch % 1 == 0:
+                logging.info('Epoch %d; Cost %.9f' % (epoch + 1, avreage_cost))
+
+        logging.info('Training complete')
+
+        saver.save(sess, args.retrieval_model)
+
+        logging.info('Model saved to %s' % args.retrieval_model)

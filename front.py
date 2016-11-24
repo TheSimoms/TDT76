@@ -2,6 +2,7 @@ import random
 import argparse
 import logging
 
+from classifier import generate_bottlenecks
 from utils import log_header, generate_dict_from_directory
 from your_code import train, test
 
@@ -120,9 +121,9 @@ def run_test(label_dict, image_ids, args):
     :return: Total score
     """
 
-    queries = []
-
     logging.info('Generating random test queries')
+
+    queries = []
 
     # Generate random queries, just to run the "test"-function.
     # These are elements from the TEST-SET folder
@@ -138,13 +139,42 @@ def main():
     Run the test procedure, with option to train the network first.
     """
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--train', action='store_true', help='Train the network before testing')
     parser.add_argument('--debug', action='store_true', help='Toggle debug')
+
+    parser.add_argument('--train-path', type=str, default='./train', help='Path to training data')
+    parser.add_argument('--test-path', type=str, default='./test', help='Path to testing data')
     parser.add_argument(
-        '--checkpoint', type=str, default='./models/2016_08/model.ckpt',
-        help='Path to optional custom pre-trained model'
+        '--validate-path', type=str, default='./validate', help='Path to validation data'
+    )
+
+    parser.add_argument(
+        '--image-model', type=str, default='./models/image.ckpt',
+        help='Path to optional custom pre-trained image model'
+    )
+    parser.add_argument(
+        '--retrieval-model', type=str, default='./models/retrieval.ckpt',
+        help='Path to optional custom pre-trained retrieval model'
+    )
+    parser.add_argument(
+        '--bottleneck', type=str, default='./models/bottleneck.pickle',
+        help='Path to optional custom pre-computed bottleneck values'
+    )
+
+    parser.add_argument(
+        '--learning-rate', type=float, default=0.001, help='Learning rate during training'
+    )
+    parser.add_argument(
+        '--training-epochs', type=int, default=20, help='Number of epochs during training'
+    )
+    parser.add_argument(
+        '--batch-size', type=int, default=100, help='Batch size during training'
+    )
+
+    parser.add_argument(
+        '--generate-bottlenecks', action='store_true', help='Generate bottleneck values'
     )
 
     args = parser.parse_args()
@@ -155,18 +185,17 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     # Make sure we have generated a list of train IDS and their labels stored in a pickle
-    train_labels = generate_dict_from_directory()
+    train_labels = generate_dict_from_directory(args.train_path)
+
+    if args.generate_bottlenecks:
+        generate_bottlenecks([args.train_path, args.validate_path], args)
 
     # Optionally train the network
     if args.train:
-        logging.info('Training network')
-
         train(args)
 
     # Make sure we have generated a list of test IDS and their labels stored in a pickle
-    test_labels = generate_dict_from_directory(
-        pickle_file='./test/pickle/combined.pickle', directory='./test/txt/'
-    )
+    test_labels = generate_dict_from_directory(args.test_path)
 
     # Run the testing
     run_test({**test_labels, **train_labels}, list(test_labels.keys()), args)

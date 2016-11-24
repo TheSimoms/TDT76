@@ -6,24 +6,25 @@ import os.path
 import logging
 import pickle
 import glob
-
+import ntpath
 import tensorflow as tf
 
 
 SEPARATOR = 50 * '='
 
 
-def generate_dict_from_directory(pickle_file='./train/pickle/combined.pickle',
-                                 directory='./train/txt'):
+def generate_dict_from_directory(path):
     """
     Go through a full directory of .txt-files, and transform the .txt into dict.
     Create a combo of all the txt-files which is saved in a pickle.
     Also save a small .pickle per txt-file.
 
-    :param pickle_file: Where to store the final dict
-    :param directory: Directory to traverse for .txt-files
+    :param path: Path where data is stored
     :return: A dict
     """
+
+    pickle_file = '%s/pickle/combined.pickle' % path
+    directory = '%s/txt/' % path
 
     if os.path.isfile(pickle_file):
         # This is easy - dict generated already
@@ -83,6 +84,24 @@ def generate_dict_from_text_file(filename):
         logging.error('File does not exist: %s' % filename)
 
     return my_dict
+
+
+def get_images_in_path(path):
+    """
+    Return path name and file name for all image files in path.
+
+    :param path: Path to search
+    :return: List of tuples (path, filename)
+    """
+
+    images = []
+
+    for full_path in glob.glob(path + '/pics/*/*.jpg'):
+        path, filename = ntpath.split(full_path)
+
+        images.append((path, filename, filename.split('.')[0]))
+
+    return images
 
 
 def log_header(header):

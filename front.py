@@ -197,8 +197,12 @@ def main():
     # Make sure we have generated a list of test IDS and their labels stored in a pickle
     test_labels = generate_dict_from_directory(args.test_path)
 
+    all_labels = {}
+    all_labels.update(train_labels)
+    all_labels.update(test_labels)
+
     # Run the testing
-    run_test({**test_labels, **train_labels}, list(test_labels.keys()), args)
+    run_test(all_labels, list(test_labels.keys()), args)
 
 
 if __name__ == "__main__":

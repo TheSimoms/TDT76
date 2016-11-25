@@ -35,7 +35,7 @@ def generate_dict_from_directory(path):
 
         for f in glob.glob(directory + '/*.txt'):
             # Add elements from dict; Requires Python 3.5
-            my_dict = {**generate_dict_from_text_file(f), **my_dict}
+            my_dict.update(generate_dict_from_text_file(f))
 
         with open(pickle_file, 'wb') as f:
             pickle.dump(my_dict, f)

@@ -1,9 +1,7 @@
 import logging
 
-from utils import log_header, get_number_of_classes, get_number_of_images
-from classifier import retrieve_similar_images
-from labeler import train_labeler
-from retriever import train_retriever
+from utils import log_header, get_sorted_image_ids
+from retrieval import train_retriever, retrieve_similar_images
 
 
 def train(args):
@@ -17,11 +15,7 @@ def train(args):
 
     log_header('Training network')
 
-    number_of_classes = get_number_of_classes(args.train_path)
-    number_of_images = get_number_of_images(args.train_path)
-
-    train_labeler(number_of_classes, args)
-    train_retriever(number_of_classes, number_of_images, args)
+    train_retriever(args)
 
 
 def test(queries, args):
@@ -41,7 +35,9 @@ def test(queries, args):
     results = {}
 
     for image_id in queries:
-        results[image_id] = retrieve_similar_images(image_id, '%s/pics' % args.test_path, args)
+        results[image_id] = retrieve_similar_images(
+            image_id, '%s/pics' % args.test_path, get_sorted_image_ids(args.train_path), args
+        )
 
         logging.info('%s: %s' % (image_id, results[image_id]))
 

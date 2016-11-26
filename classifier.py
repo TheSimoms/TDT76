@@ -13,9 +13,6 @@ from tensorflow.contrib.slim.python.slim.nets import inception
 from tensorflow.python.training import saver as tf_saver
 
 from utils import preprocess_image, get_images_in_path, generate_dict_from_directory
-from labeler import evaluate_labels
-from retriever import evaluate_retriever
-
 
 slim = tf.contrib.slim
 
@@ -106,24 +103,3 @@ def get_bottleneck(image_id, path, args):
                 return bottlenecks[image_id]
 
     return compute_bottleneck(image_id, path, args)
-
-
-def retrieve_similar_images(image_id, path, args):
-    """
-    Return similar images for query image.
-
-    :param image_id: ID of query image
-    :param path: Path where image is located
-    :param args: Run-time arguments
-    :return: List of images similar to query image
-    """
-
-    bottleneck = get_bottleneck(image_id, path, args)
-    labels = evaluate_labels(bottleneck, args)
-    retrieval = evaluate_retriever(labels, args)
-
-    # Get output from retriever
-
-    # Argmax
-
-    return []

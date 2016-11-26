@@ -1,3 +1,4 @@
+import sys
 import random
 import argparse
 import logging
@@ -127,8 +128,11 @@ def run_test(label_dict, image_ids, args):
 
     # Generate random queries, just to run the "test"-function.
     # These are elements from the TEST-SET folder
-    for i in range(1000):
+    # for i in range(1000):
+    for i in range(5):
         queries.append(image_ids[random.randint(0, len(image_ids) - 1)])
+
+    queries.append('007904b728ccf6b6')
 
     # Calculate the score
     return calculate_score(label_dict, queries, test(queries, args))
@@ -154,22 +158,10 @@ def main():
         '--bottlenecks', type=str, default='./models/bottleneck.pickle',
         help='Path to optional custom pre-computed bottleneck values'
     )
-    parser.add_argument(
-        '--labels', type=str, default='./models/labels.pickle',
-        help='Path to optional custom pre-computed label values'
-    )
-    parser.add_argument(
-        '--retrieval', type=str, default='./models/retrieval.pickle',
-        help='Path to optional custom pre-computed retrieval values'
-    )
 
     parser.add_argument(
         '--bottleneck-model', type=str, default='./models/model.ckpt',
         help='Path to optional custom pre-trained bottleneck model'
-    )
-    parser.add_argument(
-        '--labeler-model', type=str, default='./models/labeler.ckpt',
-        help='Path to optional custom pre-trained labeler model'
     )
     parser.add_argument(
         '--retrieval-model', type=str, default='./models/retrieval.ckpt',
@@ -184,6 +176,9 @@ def main():
     )
     parser.add_argument(
         '--batch-size', type=int, default=100, help='Batch size during training'
+    )
+    parser.add_argument(
+        '--threshold', type=float, default=0.0, help='Threshold for cutting output'
     )
 
     parser.add_argument(
@@ -202,6 +197,8 @@ def main():
 
     if args.generate_bottlenecks:
         generate_bottlenecks([args.train_path, args.validate_path], args)
+
+        sys.exit(0)
 
     # Optionally train the network
     if args.train:

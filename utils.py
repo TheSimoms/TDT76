@@ -105,30 +105,36 @@ def get_images_in_path(path):
     return images
 
 
-def log_header(header):
-    """
-    Display header, separated by lines of equality symbols.
-
-    :param header: Header to display
-    """
-
-    logging.info(SEPARATOR)
-    logging.info(header)
-    logging.info(SEPARATOR)
-
-
-def read_pickle(filename):
-    if not os.path.exists(filename):
-        logging.critical('Vital file %s does not exist. Aborting' % filename)
-
-        sys.exit(1)
-
-    with open(filename, 'rb') as f:
-        return pickle.load(f)
-
-
 def get_sorted_image_ids(path):
     return sorted(generate_dict_from_directory(path).keys())
+
+
+def get_sorted_classes(path):
+    """
+    Get the number of different classes.
+
+    :param header: Path to images
+    :return: Number of classes
+    """
+
+    label_set = set()
+    label_dict = generate_dict_from_directory(path)
+
+    for image_id, labels in label_dict.items():
+        label_set.update(label[0] for label in labels)
+
+    return sorted(label_set)
+
+
+def get_number_of_images(path):
+    """
+    Get the number of images.
+
+    :param header: Path to images
+    :return: Number of images
+    """
+
+    return len(generate_dict_from_directory(path))
 
 
 def get_number_of_classes(path):
@@ -148,15 +154,34 @@ def get_number_of_classes(path):
     return len(label_set)
 
 
-def get_number_of_images(path):
+def log_header(header):
     """
-    Get the number of images.
+    Display header, separated by lines of equality symbols.
 
-    :param header: Path to images
-    :return: Number of images
+    :param header: Header to display
     """
 
-    return len(generate_dict_from_directory(path))
+    logging.info(SEPARATOR)
+    logging.info(header)
+    logging.info(SEPARATOR)
+
+
+def read_pickle(filename, vital=True):
+    if not os.path.exists(filename):
+        if vital:
+            logging.critical('Vital file %s does not exist. Aborting' % filename)
+
+            sys.exit(1)
+
+        return None
+
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+
+
+def save_pickle(value, filename):
+    with open(filename, 'wb') as f:
+        return pickle.dump(value, f)
 
 
 def preprocess_image(image_path, central_fraction=0.875):

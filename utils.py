@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import sys
 import os.path
 import logging
 import pickle
@@ -114,6 +115,48 @@ def log_header(header):
     logging.info(SEPARATOR)
     logging.info(header)
     logging.info(SEPARATOR)
+
+
+def read_pickle(filename):
+    if not os.path.exists(filename):
+        logging.critical('Vital file %s does not exist. Aborting' % filename)
+
+        sys.exit(1)
+
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+
+
+def get_sorted_image_ids(path):
+    return sorted(generate_dict_from_directory(path).keys())
+
+
+def get_number_of_classes(path):
+    """
+    Get the number of different classes.
+
+    :param header: Path to images
+    :return: Number of classes
+    """
+
+    label_set = set()
+    label_dict = generate_dict_from_directory(path)
+
+    for image_id, labels in label_dict.items():
+        label_set.update(label[0] for label in labels)
+
+    return len(label_set)
+
+
+def get_number_of_images(path):
+    """
+    Get the number of images.
+
+    :param header: Path to images
+    :return: Number of images
+    """
+
+    return len(generate_dict_from_directory(path))
 
 
 def preprocess_image(image_path, central_fraction=0.875):

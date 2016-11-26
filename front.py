@@ -151,16 +151,29 @@ def main():
     )
 
     parser.add_argument(
-        '--image-model', type=str, default='./models/image.ckpt',
-        help='Path to optional custom pre-trained image model'
+        '--bottlenecks', type=str, default='./models/bottleneck.pickle',
+        help='Path to optional custom pre-computed bottleneck values'
+    )
+    parser.add_argument(
+        '--labels', type=str, default='./models/labels.pickle',
+        help='Path to optional custom pre-computed label values'
+    )
+    parser.add_argument(
+        '--retrieval', type=str, default='./models/retrieval.pickle',
+        help='Path to optional custom pre-computed retrieval values'
+    )
+
+    parser.add_argument(
+        '--bottleneck-model', type=str, default='./models/model.ckpt',
+        help='Path to optional custom pre-trained bottleneck model'
+    )
+    parser.add_argument(
+        '--labeler-model', type=str, default='./models/labeler.ckpt',
+        help='Path to optional custom pre-trained labeler model'
     )
     parser.add_argument(
         '--retrieval-model', type=str, default='./models/retrieval.ckpt',
         help='Path to optional custom pre-trained retrieval model'
-    )
-    parser.add_argument(
-        '--bottleneck', type=str, default='./models/bottleneck.pickle',
-        help='Path to optional custom pre-computed bottleneck values'
     )
 
     parser.add_argument(

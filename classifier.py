@@ -13,6 +13,8 @@ from tensorflow.contrib.slim.python.slim.nets import inception
 from tensorflow.python.training import saver as tf_saver
 
 from utils import preprocess_image, get_images_in_path, generate_dict_from_directory
+from labeler import evaluate_labels
+from retriever import evaluate_retriever
 
 
 slim = tf.contrib.slim
@@ -28,8 +30,8 @@ def compute_bottleneck(image_id, path, args):
     :return: Bottleneck layer values for query image
     """
 
-    if not os.path.exists(args.image_model):
-        logging.critical('Checkpoint %s does not exist' % args.image_model)
+    if not os.path.exists(args.bottleneck_model):
+        logging.critical('Checkpoint %s does not exist' % args.bottleneck_model)
 
         sys.exit(1)
 
@@ -52,7 +54,7 @@ def compute_bottleneck(image_id, path, args):
 
         saver = tf_saver.Saver()
         sess = tf.Session()
-        saver.restore(sess, args.image_model)
+        saver.restore(sess, args.bottleneck_model)
 
         return np.squeeze(sess.run(predictions))
 
@@ -78,10 +80,10 @@ def generate_bottlenecks(paths, args):
 
             bottlenecks[image_id] = compute_bottleneck(image_id, image_path, args)
 
-    with open(args.bottleneck, 'wb') as f:
+    with open(args.bottlenecks, 'wb') as f:
         pickle.dump(bottlenecks, f)
 
-        logging.info('Bottleneck values saved to file %s' % args.bottleneck)
+        logging.info('Bottleneck values saved to file %s' % args.bottlenecks)
 
     return bottlenecks
 
@@ -96,30 +98,14 @@ def get_bottleneck(image_id, path, args):
     :return: Bottleneck
     """
 
-    if os.path.isfile(args.bottleneck):
-        with open(args.bottleneck, 'rb') as f:
-            return pickle.load(f)[image_id]
-    else:
-        return compute_bottleneck(image_id, path, args)
+    if os.path.isfile(args.bottlenecks):
+        with open(args.bottlenecks, 'rb') as f:
+            bottlenecks = pickle.load(f)
 
+            if image_id in bottlenecks:
+                return bottlenecks[image_id]
 
-def run_bottleneck_through_network(bottleneck, args):
-    """
-    Run bottleneck values through network.
-
-    :param bottleneck: Bottleneck values for image
-    :param args: Run-time arguments
-    :return: Output layer
-    """
-
-    if not os.path.isfile(args.retrieval_model):
-        logging.error('Could not find pre-trained classifier model. Please train a model frist')
-
-        sys.exit(1)
-
-    print(len(bottleneck))
-
-    return None
+    return compute_bottleneck(image_id, path, args)
 
 
 def retrieve_similar_images(image_id, path, args):
@@ -133,8 +119,11 @@ def retrieve_similar_images(image_id, path, args):
     """
 
     bottleneck = get_bottleneck(image_id, path, args)
+    labels = evaluate_labels(bottleneck, args)
+    retrieval = evaluate_retriever(labels, args)
 
-    if bottleneck is None:
-        return []
+    # Get output from retriever
+
+    # Argmax
 
     return []

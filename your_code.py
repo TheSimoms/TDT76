@@ -1,8 +1,9 @@
 import logging
 
-from utils import log_header
+from utils import log_header, get_number_of_classes, get_number_of_images
 from classifier import retrieve_similar_images
-from network import Layer, generate_training_data_set, setup_network
+from labeler import train_labeler
+from retriever import train_retriever
 
 
 def train(args):
@@ -16,12 +17,11 @@ def train(args):
 
     log_header('Training network')
 
-    training_set = generate_training_data_set(args.train_path, args)
-    validation_set = generate_training_data_set(args.validate_path, args)
+    number_of_classes = get_number_of_classes(args.train_path)
+    number_of_images = get_number_of_images(args.train_path)
 
-    network = setup_network(
-        2048, len(training_set[0]), [Layer(4000), Layer(8000), Layer(32000)], args
-    )
+    train_labeler(number_of_classes, args)
+    train_retriever(number_of_classes, number_of_images, args)
 
 
 def test(queries, args):

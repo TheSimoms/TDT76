@@ -1,39 +1,13 @@
 import logging
 import tensorflow as tf
 
-from utils import generate_dict_from_directory, get_images_in_path
-from classifier import get_bottleneck
+from tensorflow.python.training import saver as tf_saver
 
 
 class Layer:
     def __init__(self, output_size, activation=tf.nn.relu):
         self.output_size = output_size
         self.activation = activation
-
-
-def generate_training_data_set(path, args):
-    """
-    Generate data set used for training the model.
-
-    :param path: Path containing the data
-    :return: Data set in format [[input][labels]]
-    """
-
-    logging.debug('Generating training data set for %s' % path)
-
-    ids = []
-    labels = []
-
-    label_dict = generate_dict_from_directory(args.train_path)
-
-    for image_path, _, image_id in get_images_in_path(path):
-        if image_id not in label_dict:
-            continue
-
-        ids.append(get_bottleneck(image_id, image_path, args))
-        labels.append(label_dict[image_id])
-
-    return ids, labels
 
 
 def setup_layer(input_size, output_size, activation, previous_layer):
@@ -76,7 +50,7 @@ def setup_network(input_size, output_size, hidden_layers, args):
     return x, y, output_layer, cost, optimizer
 
 
-def train_network(network, training_data, validation_data, args):
+def train_network(network, training_data, model_name, args):
     logging.info('Training model')
 
     x, y, output_layer, cost_function, optimizer = network
@@ -106,6 +80,17 @@ def train_network(network, training_data, validation_data, args):
 
         logging.info('Training complete')
 
-        saver.save(sess, args.retrieval_model)
+        saver.save(sess, model_name)
 
-        logging.info('Model saved to %s' % args.retrieval_model)
+        logging.info('Model saved to %s' % model_name)
+
+
+def evaluate(input_size, output_size, hidden_layers, args, model_name, value):
+    x, _, output_layer, _, _ = setup_network(input_size, output_size, hidden_layers, args)
+
+    saver = tf_saver.Saver()
+
+    with tf.Session() as sess:
+        saver.restore(sess, model_name)
+
+        return sess.run([output_layer], feed_dict={x: value})

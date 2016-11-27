@@ -4,7 +4,7 @@ from utils import log_header, get_sorted_image_ids
 from retriever import train_retriever, retrieve_similar_images
 
 
-def train(args):
+def train(label_dict, args):
     """
     The training procedure is triggered here. OPTIONAL to run; everything that
     is required for testing the model must be saved to file so that the test procedure
@@ -15,7 +15,7 @@ def train(args):
 
     log_header('Training network')
 
-    train_retriever(args)
+    train_retriever(label_dict, args)
 
 
 def test(queries, args):

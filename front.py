@@ -180,6 +180,9 @@ def main():
         '--training-epochs', type=int, default=10, help='Number of epochs during training'
     )
     parser.add_argument(
+        '--number-of-batches', type=int, default=100, help='Number of batches during training'
+    )
+    parser.add_argument(
         '--batch-size', type=int, default=100, help='Batch size during training'
     )
 
@@ -216,7 +219,7 @@ def main():
 
     # Optionally train the network
     if args.train:
-        train(args)
+        train(train_labels, args)
 
     # Make sure we have generated a list of test IDS and their labels stored in a pickle
     test_labels = generate_dict_from_directory(args.test_path)

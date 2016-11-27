@@ -8,6 +8,7 @@ import logging
 import pickle
 import glob
 import ntpath
+import random
 import numpy as np
 
 from scipy import misc
@@ -109,6 +110,23 @@ def get_images_in_path(path):
     return images
 
 
+def get_random_sample_of_images_in_path(path, label_dict, args):
+    """
+    Return path name and file name for all image files in path.
+
+    :param path: Path to search
+    :return: List of tuples (path, filename)
+    """
+
+    images = get_images_in_path(path)
+    res = set()
+
+    while len(res) < args.batch_size:
+        res.add(random.choice(images))
+
+    return res
+
+
 def get_sorted_labels(label_dict):
     """
     Get the number of different labels.
@@ -181,7 +199,7 @@ def save_pickle(value, filename):
         return pickle.dump(value, f)
 
 
-def preprocess_image(image_path, central_fraction=0.875):
+def preprocess_image(image_path):
     """
     Load and preprocess an image.
 
@@ -189,6 +207,8 @@ def preprocess_image(image_path, central_fraction=0.875):
     :param central_fraction: Do a central crop with the specified fraction of image covered.
     :return: An ops.Tensor that produces the preprocessed image.
     """
+
+    logging.debug('Preprocessing image %s' % image_path)
 
     if not os.path.exists(image_path):
         logging.error('Input image does not exist %s' % image_path)

@@ -2,8 +2,6 @@ import logging
 import tensorflow as tf
 import numpy as np
 
-from utils import get_sorted_labels, generate_dict_from_directory, preprocess_image
-
 
 IMAGE_SIZE = 192 * 256 * 3
 
@@ -150,12 +148,7 @@ def setup_network(input_size, output_size, hidden_layers, args):
     return x, y, output_layer, cost, optimizer
 
 
-def run_network(network, model_name, args, train=True, training_data=None, value=None,
-                convolutional=False):
-    if convolutional:
-        labels = get_sorted_labels(generate_dict_from_directory(args.train_path))
-        label_list = [0.0] * len(labels)
-
+def run_network(network, model_name, args, train=True, training_data=None, value=None):
     with tf.Session() as sess:
         x, y, output_layer, cost_function, optimizer = network
 
@@ -166,38 +159,18 @@ def run_network(network, model_name, args, train=True, training_data=None, value
         if train:
             logging.info('Training model')
 
-            number_of_batches = int(len(training_data[0]) / args.batch_size)
-
             for epoch in range(args.training_epochs):
                 logging.info('Epoch: %d' % epoch)
 
                 avreage_cost = 0.0
 
-                for i in range(0, number_of_batches):
+                for i in range(0, args.number_of_batches):
                     logging.info('Batch: %d' % i)
 
-                    offset = i * args.batch_size
-
-                    if convolutional:
-                        batch_x = training_data[0][offset:offset + args.batch_size]
-                        batch_y = training_data[1][offset:offset + args.batch_size]
-
-                        x_ = [preprocess_image(image) for image in batch_x]
-                        y_ = []
-
-                        for image in batch_y:
-                            image_labels = list(label_list)
-
-                            for label, confidence in image:
-                                image_labels[label] = confidence
-
-                            y_.append(image_labels)
-                    else:
-                        x_ = training_data[0][offset:offset + args.batch_size]
-                        y_ = training_data[1][offset:offset + args.batch_size]
+                    x_, y_ = training_data[0](**training_data[1])
 
                     loss, cost = sess.run([optimizer, cost_function], feed_dict={x: x_, y: y_})
-                    avreage_cost += cost / number_of_batches
+                    avreage_cost += cost / args.number_of_batches
 
                 if epoch % 1 == 0:
                     logging.info('Epoch %d; Cost %.9f' % (epoch + 1, avreage_cost))

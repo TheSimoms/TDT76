@@ -1,14 +1,15 @@
 import logging
+import random
 
 from utils import (
-    log_header, get_number_of_images, read_pickle, get_sorted_image_ids, get_number_of_labels,
+    log_header, get_number_of_images, read_pickle, get_number_of_labels,
     generate_dict_from_directory
 )
 from network import Layer, setup_network, run_network
 from feature_extractor import get_features, generate_features
 
 
-def generate_training_data_set(path, args):
+def generate_training_batch(**kwargs):
     """
     Generate data set used for training the model.
 
@@ -16,21 +17,29 @@ def generate_training_data_set(path, args):
     :return: Data set in format [[input][output]]
     """
 
-    logging.debug('Generating retriever training data set')
+    logging.debug('Generating batch')
+
+    label_dict = kwargs.get('label_dict')
+    args = kwargs.get('args')
 
     inputs = []
     outputs = []
-    count = [0] * get_number_of_images(path)
+
+    count = [0.0] * len(label_dict)
 
     features = read_pickle(args.features, False)
 
     if features is None:
         features = generate_features(args.train_path)
 
-    image_ids = get_sorted_image_ids(path)
+    image_ids = sorted(label_dict.keys())
+    image_set = set()
 
-    for i in range(len(image_ids)):
-        image_id = image_ids[i]
+    while len(image_set) < args.batch_size:
+        image_set.add(random.choice(image_ids))
+
+    for image_id in image_set:
+        i = image_ids.index(image_id)
 
         output = list(count)
         output[i] = 1.0
@@ -41,7 +50,7 @@ def generate_training_data_set(path, args):
     return inputs, outputs
 
 
-def train_retriever(args):
+def train_retriever(label_dict, args):
     log_header('Training retriever')
 
     network = setup_network(
@@ -50,8 +59,9 @@ def train_retriever(args):
     )
 
     run_network(
-        network, args.retrieval_model, args,
-        training_data=generate_training_data_set(args.train_path, args)
+        network, args.retrieval_model, args, training_data=(
+            generate_training_batch, {'label_dict': label_dict, 'args': args}
+        ),
     )
 
 

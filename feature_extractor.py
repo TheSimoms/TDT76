@@ -6,12 +6,11 @@ import sys
 import os.path
 import logging
 import pickle
-import math
 import tensorflow as tf
 
 from utils import (
     preprocess_image, get_images_in_path, generate_dict_from_directory, get_sorted_labels,
-    get_number_of_labels, log_header, read_pickle, save_pickle
+    get_number_of_labels, log_header, get_random_sample_of_images_in_path
 )
 from network import (
     setup_convolutional_network, run_network, IMAGE_SIZE
@@ -97,43 +96,30 @@ def get_features(image_id, path, args):
     return compute_features(image_id, path, args)
 
 
-def generate_training_data_set(label_dict, args):
-    training_data = read_pickle(args.training_data, False)
-
-    if training_data is not None:
-        return training_data
+def generate_training_batch(**kwargs):
+    label_dict = kwargs.get('label_dict')
+    args = kwargs.get('args')
 
     labels = get_sorted_labels(label_dict)
+    images = get_random_sample_of_images_in_path(args.train_path, label_dict, args)
 
-    images = get_images_in_path(args.train_path)
-    number_of_images = len(images)
+    label_list = [0.0] * len(labels)
 
-    training_data = [[], []]
+    logging.debug('Generating batch')
 
-    logging.debug('Generating training data')
+    inputs = []
+    outputs = []
 
-    progress_step = math.ceil(number_of_images / 100)
-
-    for i in range(number_of_images):
-        image_path, _, image_id = images[i]
-
-        if i % progress_step == 0:
-            logging.info('Progress: %d%%' % (i / number_of_images * 100))
-
-        if image_id not in label_dict:
-            continue
-
-        output = []
+    for image_path, _, image_id in images:
+        output = list(label_list)
 
         for label, confidence in label_dict[image_id]:
-            output.append((labels.index(label), confidence))
+            output[labels.index(label)] = confidence
 
-        training_data[0].append('%s/%s.jpg' % (image_path, image_id))
-        training_data[1].append(output)
+        inputs.append(preprocess_image('%s/%s.jpg' % (image_path, image_id)))
+        outputs.append(output)
 
-    save_pickle(training_data, args.training_data)
-
-    return training_data
+    return inputs, outputs
 
 
 def train_feature_model(label_dict, args):
@@ -143,12 +129,12 @@ def train_feature_model(label_dict, args):
 
     log_header('Training feature model')
 
-    training_data = generate_training_data_set(label_dict, args)
-
     network = setup_convolutional_network(
         IMAGE_SIZE, get_number_of_labels(label_dict), args
     )
 
     run_network(
-        network, args.feature_model, args, training_data=training_data, convolutional=True
+        network, args.feature_model, args, training_data=(
+            generate_training_batch, {'label_dict': label_dict, 'args': args}
+        )
     )

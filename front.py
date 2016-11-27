@@ -183,7 +183,7 @@ def main():
         '--number-of-batches', type=int, default=100, help='Number of batches during training'
     )
     parser.add_argument(
-        '--batch-size', type=int, default=100, help='Batch size during training'
+        '--batch-size', type=int, default=10, help='Batch size during training'
     )
 
     parser.add_argument(

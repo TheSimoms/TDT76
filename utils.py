@@ -8,7 +8,9 @@ import logging
 import pickle
 import glob
 import ntpath
-import tensorflow as tf
+import numpy as np
+
+from scipy import misc
 
 
 SEPARATOR = 50 * '='
@@ -95,6 +97,8 @@ def get_images_in_path(path):
     :return: List of tuples (path, filename)
     """
 
+    logging.debug('Fetching images in path %s' % path)
+
     images = []
 
     for full_path in glob.glob(path + '/pics/*/*.jpg'):
@@ -105,25 +109,35 @@ def get_images_in_path(path):
     return images
 
 
-def get_sorted_image_ids(path):
-    return sorted(generate_dict_from_directory(path).keys())
-
-
-def get_sorted_classes(path):
+def get_sorted_labels(label_dict):
     """
-    Get the number of different classes.
+    Get the number of different labels.
 
     :param header: Path to images
-    :return: Number of classes
+    :return: Number of labels
     """
 
     label_set = set()
-    label_dict = generate_dict_from_directory(path)
 
-    for image_id, labels in label_dict.items():
+    for _, labels in label_dict.items():
         label_set.update(label[0] for label in labels)
 
     return sorted(label_set)
+
+
+def get_number_of_labels(label_dict):
+    """
+    Get the number of different labels.
+
+    :param header: Path to images
+    :return: Number of labels
+    """
+
+    return len(get_sorted_labels(label_dict))
+
+
+def get_sorted_image_ids(path):
+    return sorted(generate_dict_from_directory(path).keys())
 
 
 def get_number_of_images(path):
@@ -135,23 +149,6 @@ def get_number_of_images(path):
     """
 
     return len(generate_dict_from_directory(path))
-
-
-def get_number_of_classes(path):
-    """
-    Get the number of different classes.
-
-    :param header: Path to images
-    :return: Number of classes
-    """
-
-    label_set = set()
-    label_dict = generate_dict_from_directory(path)
-
-    for image_id, labels in label_dict.items():
-        label_set.update(label[0] for label in labels)
-
-    return len(label_set)
 
 
 def log_header(header):
@@ -198,19 +195,10 @@ def preprocess_image(image_path, central_fraction=0.875):
 
         return
 
-    img_data = tf.gfile.FastGFile(image_path).read()
+    img = misc.imread(image_path)
 
-    # Decode Jpeg data and convert to float.
-    img = tf.cast(tf.image.decode_jpeg(img_data, channels=3), tf.float32)
+    img = np.array(img, dtype='float32')
 
-    # Do a central crop
-    img = tf.image.central_crop(img, central_fraction=central_fraction)
+    img = img.ravel()
 
-    # Make into a 4D tensor by setting a 'batch size' of 1.
-    img = tf.expand_dims(img, [0])
-    img = tf.image.resize_bilinear(img, (299, 299), align_corners=False)
-
-    # Center the image about 128.0 (which is done during training) and normalize.
-    img = tf.mul(img, 1.0/127.5)
-
-    return tf.sub(img, 1.0)
+    return img

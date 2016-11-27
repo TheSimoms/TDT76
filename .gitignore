@@ -1,4 +1,7 @@
-TDT76
+train/
+validate/
+test/
+TDT76/
 
 # Created by https://www.gitignore.io/api/pycharm,python
 

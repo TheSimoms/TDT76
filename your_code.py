@@ -1,7 +1,7 @@
 import logging
 
 from utils import log_header, get_sorted_image_ids
-from retrieval import train_retriever, retrieve_similar_images
+from retriever import train_retriever, retrieve_similar_images
 
 
 def train(args):

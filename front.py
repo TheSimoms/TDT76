@@ -3,7 +3,7 @@ import random
 import argparse
 import logging
 
-from classifier import generate_bottlenecks
+from feature_extractor import generate_features, train_feature_model
 from utils import log_header, generate_dict_from_directory
 from your_code import train, test
 
@@ -155,13 +155,13 @@ def main():
     )
 
     parser.add_argument(
-        '--bottlenecks', type=str, default='./models/bottleneck.pickle',
-        help='Path to optional custom pre-computed bottleneck values'
+        '--features', type=str, default='./models/features.pickle',
+        help='Path to optional custom pre-computed feature values'
     )
 
     parser.add_argument(
-        '--bottleneck-model', type=str, default='./models/model.ckpt',
-        help='Path to optional custom pre-trained bottleneck model'
+        '--feature-model', type=str, default='./models/features.ckpt',
+        help='Path to optional custom pre-trained feature model'
     )
     parser.add_argument(
         '--retrieval-model', type=str, default='./models/retrieval.ckpt',
@@ -169,20 +169,29 @@ def main():
     )
 
     parser.add_argument(
-        '--learning-rate', type=float, default=0.001, help='Learning rate during training'
+        '--training-data', type=str, default='./models/training-data.pickle',
+        help='Path to optional pre-saved training data set'
+    )
+
+    parser.add_argument(
+        '--learning-rate', type=float, default=0.01, help='Learning rate during training'
     )
     parser.add_argument(
-        '--training-epochs', type=int, default=20, help='Number of epochs during training'
+        '--training-epochs', type=int, default=10, help='Number of epochs during training'
     )
     parser.add_argument(
         '--batch-size', type=int, default=100, help='Batch size during training'
     )
+
     parser.add_argument(
         '--threshold', type=float, default=0.0, help='Threshold for cutting output'
     )
 
     parser.add_argument(
-        '--generate-bottlenecks', action='store_true', help='Generate bottleneck values'
+        '--train-feature-model', action='store_true', help='Train feature model'
+    )
+    parser.add_argument(
+        '--generate-features', action='store_true', help='Generate feature values'
     )
 
     args = parser.parse_args()
@@ -195,8 +204,13 @@ def main():
     # Make sure we have generated a list of train IDS and their labels stored in a pickle
     train_labels = generate_dict_from_directory(args.train_path)
 
-    if args.generate_bottlenecks:
-        generate_bottlenecks([args.train_path, args.validate_path], args)
+    if args.train_feature_model:
+        train_feature_model(train_labels, args)
+
+        sys.exit(0)
+
+    if args.generate_features:
+        generate_features([args.train_path, args.validate_path], args)
 
         sys.exit(0)
 

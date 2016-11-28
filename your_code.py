@@ -8,9 +8,7 @@ from retriever import train_retriever, retrieve_similar_images
 
 def train(args):
     """
-    The training procedure is triggered here. OPTIONAL to run; everything that
-    is required for testing the model must be saved to file so that the test procedure
-    can load, execute and report.
+    Run the training procedure
 
     :param args: Run-time arguments
     """
@@ -22,14 +20,15 @@ def train(args):
 
 def test(label_dict, image_ids, args):
     """
-    Test your system with the input. For each input, generate a list of IDs that is returned.
+    Test the retrieval system. For each input in image_ids, generate a list of IDs returned for
+    that image.
 
-    :param queries: list of image-IDs. Each element is assumed to be an entry in the
-                    test set. Hence, the image with id <id> is located on my computer at
-                    './test/pics/<id>.jpg'. Make sure this is the file you work with.
+    :param label_dict: Dictionary containing labels (and their confidence) for each image
+    :param image_ids: List of image IDs. Each element is assumed to be an entry in the test set,
+                      and is located at "pics/<image id>.jpg" in the test path
     :param args: Run-time arguments
     :return: A dictionary with keys equal to the images in the queries list,
-             and values a list of image-IDs retrieved for that input
+             and values a list of image IDs retrieved for that input
     """
 
     log_header('Starting image retrieval preparations')
@@ -37,11 +36,11 @@ def test(label_dict, image_ids, args):
 
     queries = []
 
-    # Generate random queries, just to run the "test"-function.
-    # These are elements from the TEST-SET folder
-    for i in range(1000):
+    # Generate random queries to use in the test procedure
+    for i in range(args.k):
         queries.append(image_ids[random.randint(0, len(image_ids) - 1)])
 
-    return calculate_score(
-        label_dict, queries, retrieve_similar_images(queries, '%s/pics' % args.test_path, args)
+    # Calculate score for the retrieved images
+    calculate_score(
+        label_dict, queries, retrieve_similar_images(queries, args)
     )

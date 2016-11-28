@@ -5,7 +5,7 @@ from utils import log_header
 
 def score(label_dict, target, selection, n=50):
     """
-    Calculate the score of a selected set compared to the target image.
+    Calculate the score of a selected set compared to the target image
 
     :param label_dict: Dictionary of labels, keys are image IDs
     :param target: Image ID of the query image
@@ -72,7 +72,7 @@ def score(label_dict, target, selection, n=50):
 
 def calculate_score(label_dict, queries, results):
     """
-    Calculate score for queried images.
+    Calculate score for queried images
 
     :param label_dict: Dictionary of labels, keys are image IDs
     :param queries: List of image ids to query

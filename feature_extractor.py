@@ -16,6 +16,13 @@ from network import (
 )
 
 
+def feature_network(args):
+    return setup_convolutional_network(
+        (args.image_size ** 2) * args.number_of_channels,
+        get_number_of_labels(generate_dict_from_directory(args.train_path), args), args
+    )
+
+
 def compute_features(images, args):
     """
     Compute feature values for image.
@@ -35,13 +42,8 @@ def compute_features(images, args):
             preprocess_image('%s/%s.jpg' % (path, image_id), args) for path, _, image_id in images
         ]
 
-        network = setup_convolutional_network(
-            (args.image_size ** 2) * args.number_of_channels,
-            get_number_of_labels(generate_dict_from_directory(args.train_path), args), args
-        )
-
         return run_network(
-            network, args.feature_model, args, train=False, value=input_images
+            feature_network(args), args.feature_model, args, train=False, value=input_images
         )
 
 
@@ -60,14 +62,9 @@ def generate_features(args):
     for image_path, _, image_id in get_images_in_path(args.train_path):
         images.append((image_path, image_id))
 
-    network = setup_convolutional_network(
-        (args.image_size ** 2) * args.number_of_channels,
-        get_number_of_labels(generate_dict_from_directory(args.train_path), args), args
-    )
-
     run_network(
-        network, args.feature_model, args, train=False, testing_data=images,
-        save_path=args.features
+        feature_network(args), args.feature_model, args,
+        train=False, testing_data=images, save_path=args.features
     )
 
 
@@ -118,13 +115,8 @@ def train_feature_model(label_dict, args):
 
     log_header('Training feature model')
 
-    network = setup_convolutional_network(
-        (args.image_size ** 2) * args.number_of_channels, get_number_of_labels(label_dict, args),
-        args
-    )
-
     run_network(
-        network, args.feature_model, args, training_data=(
+        feature_network(args), args.feature_model, args, training_data=(
             generate_training_batch, {'label_dict': label_dict, 'args': args}
         )
     )

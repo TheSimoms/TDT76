@@ -12,7 +12,7 @@ import random
 import numpy as np
 
 from collections import defaultdict
-from PIL import Image
+from PIL import Image, ImageFilter
 
 
 SEPARATOR = 50 * '='
@@ -263,6 +263,9 @@ def preprocess_image(image_path, args):
         img = Image.open(image_path)
     except OSError:
         return np.zeros(args.image_size * args.image_size * args.number_of_channels)
+
+    # Calculate edges
+    img = img.filter(ImageFilter.FIND_EDGES)
 
     # Resize image to (args.image_size, args.image_size)
     img = img.resize((args.image_size, args.image_size), Image.ANTIALIAS)

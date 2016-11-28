@@ -204,12 +204,14 @@ def setup_convolutional_network(input_size, output_size, args):
         x=full_layer_3, input_size=output_size, output_size=output_size, use_relu=False
     )
 
+    output_layer = tf.tanh(full_layer_4)
+
     # Calculate cross entropy, reduce its mean, and optimize
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=full_layer_4, labels=y)
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=y)
     cost = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 
-    return x, y, full_layer_3, cost, optimizer
+    return x, y, output_layer, cost, optimizer
 
 
 def setup_network(input_size, output_size, hidden_layers, args):
@@ -247,7 +249,7 @@ def setup_network(input_size, output_size, hidden_layers, args):
     )
 
     # Calculate softmax on the output layer
-    output_layer = tf.nn.softmax(tf.nn.tanh(last_layer))
+    output_layer = tf.tanh(last_layer)
 
     # Calculate cross entropy, reduce its mean, and optimize
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=y)
@@ -279,7 +281,7 @@ def run_network(network, model_name, args, train=True, training_data=None, value
     # Set up session
     with tf.Session() as sess:
         # Extract variables from network
-        x, y, test_layer, cost_function, optimizer = network
+        x, y, output_layer, cost_function, optimizer = network
 
         # Initial variables and set up saver
         sess.run(tf.initialize_all_variables())
@@ -321,7 +323,7 @@ def run_network(network, model_name, args, train=True, training_data=None, value
                 # Evaluate in batches in order not to deplete memory
                 for i in range(0, len(value), args.batch_size):
                     res.extend(np.squeeze(sess.run(
-                        [test_layer], feed_dict={x: value[i:i+args.batch_size]}
+                        [output_layer], feed_dict={x: value[i:i+args.batch_size]}
                     )))
 
                 return res
@@ -357,7 +359,7 @@ def run_network(network, model_name, args, train=True, training_data=None, value
                         inputs.append(preprocess_image('%s/%s.jpg' % (image_path, image_id), args))
 
                     # Generate features
-                    features = np.squeeze(sess.run([test_layer], feed_dict={x: inputs}))
+                    features = np.squeeze(sess.run([output_layer], feed_dict={x: inputs}))
 
                     # Add features to batch
                     for i in range(len(batch)):

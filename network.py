@@ -1,9 +1,10 @@
 import logging
+import pickle
+import math
 import tensorflow as tf
 import numpy as np
 
-
-IMAGE_SIZE = 192 * 256 * 3
+from utils import log_header, preprocess_image
 
 
 class Layer:
@@ -76,13 +77,13 @@ def setup_layer(i, o, x, a):
     return a(output)
 
 
-def setup_convolutional_network(input_size, output_size, args, channel_number=3):
+def setup_convolutional_network(input_size, output_size, args):
     logging.debug('Setting up convolutional network')
 
     x = tf.placeholder(tf.float32, [None, input_size], name='x')
     y = tf.placeholder(tf.float32, [None, output_size], name='y')
 
-    x_image = tf.reshape(x, [-1, 192, 256, channel_number])
+    x_image = tf.reshape(x, [-1, args.image_size, args.image_size, args.number_of_channels])
 
     filter_size1 = 32
     num_filters1 = 16
@@ -93,7 +94,7 @@ def setup_convolutional_network(input_size, output_size, args, channel_number=3)
     fc_size = 256
 
     layer1 = setup_convolutional_layer(
-        x=x_image, num_input_channels=channel_number, filter_size=filter_size1,
+        x=x_image, num_input_channels=args.number_of_channels, filter_size=filter_size1,
         num_filters=num_filters1, use_pooling=True
     )
 
@@ -112,9 +113,9 @@ def setup_convolutional_network(input_size, output_size, args, channel_number=3)
         x=layer_fc1, num_inputs=fc_size, num_outputs=output_size, use_relu=False
     )
 
-    output_layer = tf.nn.softmax(layer_fc2)
+    output_layer = tf.tanh(layer_fc2)
 
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_fc2, labels=y)
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=y)
     cost = tf.reduce_mean(cross_entropy)
 
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
@@ -122,7 +123,7 @@ def setup_convolutional_network(input_size, output_size, args, channel_number=3)
     return x, y, output_layer, cost, optimizer
 
 
-def setup_network(input_size, output_size, hidden_layers, args):
+def setup_network(input_size, output_size, hidden_layers, args, train=False):
     logging.debug('Setting up network')
 
     x = tf.placeholder(tf.float32, [None, input_size], name='x')
@@ -142,13 +143,17 @@ def setup_network(input_size, output_size, hidden_layers, args):
         hidden_layers[-1].output_size, output_size, previous_layer, None
     )
 
+    if train:
+        output_layer = tf.nn.softmax(output_layer)
+
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(tf.nn.softmax(output_layer), y))
     optimizer = tf.train.AdamOptimizer(learning_rate=args.learning_rate).minimize(cost)
 
     return x, y, output_layer, cost, optimizer
 
 
-def run_network(network, model_name, args, train=True, training_data=None, value=None):
+def run_network(network, model_name, args, train=True, training_data=None, value=None,
+                testing_data=None, save_path=None):
     with tf.Session() as sess:
         x, y, output_layer, cost_function, optimizer = network
 
@@ -160,22 +165,16 @@ def run_network(network, model_name, args, train=True, training_data=None, value
             logging.info('Training model')
 
             for epoch in range(args.training_epochs):
-                logging.info('Epoch: %d' % epoch)
+                log_header('Epoch: %d' % epoch)
 
-                avreage_cost = 0.0
-
-                for i in range(0, args.number_of_batches):
-                    logging.info('Batch: %d' % i)
+                for batch in range(0, args.number_of_batches):
+                    logging.info('Epoch: %d. Batch: %d' % (epoch, batch))
 
                     x_, y_ = training_data[0](**training_data[1])
 
-                    loss, cost = sess.run([optimizer, cost_function], feed_dict={x: x_, y: y_})
-                    avreage_cost += cost / args.number_of_batches
+                    sess.run([optimizer, cost_function], feed_dict={x: x_, y: y_})
 
-                if epoch % 1 == 0:
-                    logging.info('Epoch %d; Cost %.9f' % (epoch + 1, avreage_cost))
-
-            logging.info('Training complete')
+            logging.info('Training complete. Saving model')
 
             saver.save(sess, model_name)
 
@@ -184,4 +183,47 @@ def run_network(network, model_name, args, train=True, training_data=None, value
             saver = tf.train.import_meta_graph('%s.meta' % model_name)
             saver.restore(sess, model_name)
 
-            return np.squeeze(sess.run([output_layer], feed_dict={x: value}))
+            if value is not None:
+                res = []
+
+                for i in range(0, len(value), args.batch_size):
+                    res.extend(np.squeeze(sess.run(
+                        [output_layer], feed_dict={x: value[i:i+args.batch_size]}
+                    )))
+
+                return res
+
+            save_batch_number_of_batches = 50
+            save_batch_size = args.batch_size * save_batch_number_of_batches
+            total_testing_data = len(testing_data)
+            total_save_batches = math.ceil(total_testing_data / save_batch_size)
+
+            for save_batch_number in range(total_save_batches):
+                logging.error('Batch %d of %d' % (save_batch_number + 1, total_save_batches))
+
+                save_batch_offset = save_batch_number * save_batch_size
+
+                save_batch_name = '%s.%d' % (args.features, save_batch_number)
+                save_batch_features = {}
+
+                for batch_number in range(save_batch_number_of_batches):
+                    batch_offset = save_batch_offset + batch_number * save_batch_number_of_batches
+
+                    if batch_offset >= total_testing_data:
+                        break
+
+                    batch = testing_data[batch_offset:batch_offset+save_batch_number_of_batches]
+                    inputs = []
+
+                    for image_path, image_id in batch:
+                        inputs.append(preprocess_image('%s/%s.jpg' % (image_path, image_id), args))
+
+                    features = np.squeeze(sess.run([output_layer], feed_dict={x: inputs}))
+
+                    for i in range(len(batch)):
+                        _, image_id = batch[i]
+
+                        save_batch_features[image_id] = features[i]
+
+                with open(save_batch_name, 'wb') as f:
+                    pickle.dump(save_batch_features, f)

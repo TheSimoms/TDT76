@@ -11,7 +11,8 @@ import ntpath
 import random
 import numpy as np
 
-from scipy import misc
+from collections import defaultdict
+from PIL import Image, ImageFilter
 
 
 SEPARATOR = 50 * '='
@@ -122,12 +123,15 @@ def get_random_sample_of_images_in_path(path, label_dict, args):
     res = set()
 
     while len(res) < args.batch_size:
-        res.add(random.choice(images))
+        image = _, _, image_id = random.choice(images)
+
+        if image_id in label_dict:
+            res.add(image)
 
     return res
 
 
-def get_sorted_labels(label_dict):
+def get_sorted_labels(label_dict, args):
     """
     Get the number of different labels.
 
@@ -135,15 +139,25 @@ def get_sorted_labels(label_dict):
     :return: Number of labels
     """
 
-    label_set = set()
+    number_of_images = len(label_dict)
+
+    label_list = list()
+    counts = defaultdict(int)
 
     for _, labels in label_dict.items():
-        label_set.update(label[0] for label in labels)
+        for label, _ in labels:
+            counts[label] += 1
 
-    return sorted(label_set)
+    for label in counts:
+        usage = counts[label] / number_of_images * 100
+
+        if usage > args.label_threshold:
+            label_list.append(label)
+
+    return sorted(label_list)
 
 
-def get_number_of_labels(label_dict):
+def get_number_of_labels(label_dict, args):
     """
     Get the number of different labels.
 
@@ -151,7 +165,7 @@ def get_number_of_labels(label_dict):
     :return: Number of labels
     """
 
-    return len(get_sorted_labels(label_dict))
+    return len(get_sorted_labels(label_dict, args))
 
 
 def get_sorted_image_ids(path):
@@ -199,7 +213,7 @@ def save_pickle(value, filename):
         return pickle.dump(value, f)
 
 
-def preprocess_image(image_path):
+def preprocess_image(image_path, args):
     """
     Load and preprocess an image.
 
@@ -215,10 +229,22 @@ def preprocess_image(image_path):
 
         return
 
-    img = misc.imread(image_path)
+    # Load image
+    try:
+        img = Image.open(image_path)
+    except OSError:
+        return np.zeros(args.image_size * args.image_size * args.number_of_channels)
 
+    # Calculate edges
+    img = img.filter(ImageFilter.FIND_EDGES)
+
+    # Resize image to (args.image_size, args.image_size)
+    img = img.resize((args.image_size, args.image_size), Image.ANTIALIAS)
+
+    # Convert image to numpy array
     img = np.array(img, dtype='float32')
 
+    # Flatten image
     img = img.ravel()
 
     return img

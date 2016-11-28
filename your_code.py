@@ -1,10 +1,12 @@
 import logging
+import random
 
-from utils import log_header, get_sorted_image_ids
+from scoring import calculate_score
+from utils import log_header
 from retriever import train_retriever, retrieve_similar_images
 
 
-def train(label_dict, args):
+def train(args):
     """
     The training procedure is triggered here. OPTIONAL to run; everything that
     is required for testing the model must be saved to file so that the test procedure
@@ -15,10 +17,10 @@ def train(label_dict, args):
 
     log_header('Training network')
 
-    train_retriever(label_dict, args)
+    train_retriever(args)
 
 
-def test(queries, args):
+def test(label_dict, image_ids, args):
     """
     Test your system with the input. For each input, generate a list of IDs that is returned.
 
@@ -30,15 +32,16 @@ def test(queries, args):
              and values a list of image-IDs retrieved for that input
     """
 
-    log_header('Retrieving images')
+    log_header('Starting image retrieval preparations')
+    logging.info('Generating random test queries')
 
-    results = {}
+    queries = []
 
-    for image_id in queries:
-        results[image_id] = retrieve_similar_images(
-            image_id, '%s/pics' % args.test_path, get_sorted_image_ids(args.train_path), args
-        )
+    # Generate random queries, just to run the "test"-function.
+    # These are elements from the TEST-SET folder
+    for i in range(1000):
+        queries.append(image_ids[random.randint(0, len(image_ids) - 1)])
 
-        logging.info('%s: %s' % (image_id, results[image_id]))
-
-    return results
+    return calculate_score(
+        label_dict, queries, retrieve_similar_images(queries, '%s/pics' % args.test_path, args)
+    )

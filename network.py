@@ -168,7 +168,6 @@ def setup_convolutional_network(input_size, output_size, args):
     filter_size2 = 16
     num_filters2 = 128
     fc_size1 = 256
-    fc_size2 = 512
 
     # Set up the convolutional layers
     conv_layer_1_1 = setup_convolutional_layer(
@@ -197,18 +196,15 @@ def setup_convolutional_network(input_size, output_size, args):
     full_layer_2 = setup_fully_connected_layer(
         x=full_layer_1, input_size=fc_size1, output_size=output_size
     )
-    full_layer_3 = setup_fully_connected_layer(
-        x=full_layer_2, input_size=output_size, output_size=output_size, use_relu=False
-    )
 
-    output_layer = tf.tanh(full_layer_3)
+    output_layer = tf.tanh(full_layer_2)
 
     # Calculate cross entropy, reduce its mean, and optimize
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=y)
     cost = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 
-    return x, y, tf.nn.relu(full_layer_3), cost, optimizer
+    return x, y, full_layer_2, cost, optimizer
 
 
 def setup_network(input_size, output_size, hidden_layers, args):
@@ -253,7 +249,7 @@ def setup_network(input_size, output_size, hidden_layers, args):
     cost = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate=args.learning_rate).minimize(cost)
 
-    return x, y, output_layer, cost, optimizer
+    return x, y, last_layer, cost, optimizer
 
 
 def run_network(network, model_name, args, train=True, training_data=None, value=None,

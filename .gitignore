@@ -1,4 +1,4 @@
-models/*
+models/*.ckpt*
 train/
 validate/
 test/

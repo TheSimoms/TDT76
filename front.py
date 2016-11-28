@@ -57,13 +57,13 @@ def main():
         '--training-epochs', type=int, default=1, help='Number of epochs during training'
     )
     parser.add_argument(
-        '--number-of-batches', type=int, default=500, help='Number of batches during training'
+        '--number-of-batches', type=int, default=5000, help='Number of batches during training'
     )
     parser.add_argument(
-        '--batch-size', type=int, default=50, help='Batch size during training'
+        '--batch-size', type=int, default=10, help='Batch size during training'
     )
 
-    rebuild_system_warning = 'The system must be re-build when changing this parameter'
+    rebuild_system_warning = 'The system must be re-built when changing this parameter'
 
     # System parameters. When changing these, the system must be re-built
     parser.add_argument(

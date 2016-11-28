@@ -54,10 +54,10 @@ def main():
         '--learning-rate', type=float, default=0.01, help='Learning rate during training'
     )
     parser.add_argument(
-        '--training-epochs', type=int, default=5, help='Number of epochs during training'
+        '--training-epochs', type=int, default=1, help='Number of epochs during training'
     )
     parser.add_argument(
-        '--number-of-batches', type=int, default=50, help='Number of batches during training'
+        '--number-of-batches', type=int, default=500, help='Number of batches during training'
     )
     parser.add_argument(
         '--batch-size', type=int, default=50, help='Batch size during training'
@@ -72,7 +72,7 @@ def main():
              for the model to fit into memory %s' % rebuild_system_warning
     )
     parser.add_argument(
-        '--image-size', type=int, default=128,
+        '--image-size', type=int, default=160,
         help='Resize images to quadrats of this size %s' % rebuild_system_warning
     )
     parser.add_argument(

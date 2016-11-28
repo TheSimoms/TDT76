@@ -72,7 +72,7 @@ def main():
              for the model to fit into memory %s' % rebuild_system_warning
     )
     parser.add_argument(
-        '--image-size', type=int, default=192,
+        '--image-size', type=int, default=128,
         help='Resize images to quadrats of this size %s' % rebuild_system_warning
     )
     parser.add_argument(

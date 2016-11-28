@@ -163,9 +163,9 @@ def setup_convolutional_network(input_size, output_size, args):
     x_image = tf.reshape(x, [-1, args.image_size, args.image_size, args.number_of_channels])
 
     # Network parameters
-    filter_size1 = 5
-    num_filters1 = 64
-    filter_size2 = 10
+    filter_size1 = 8
+    num_filters1 = 32
+    filter_size2 = 16
     num_filters2 = 128
     fc_size1 = 256
     fc_size2 = 512

@@ -9,9 +9,14 @@ from your_code import train, test
 
 def main():
     """
-    Run the test procedure, with option to train the network first.
+    Run the system. Using run-time arguments, one are able to invoke different procedures;
+    - Train feature model
+    - Generate training data features
+    - Train the network
+    - Run the tester
     """
 
+    # Parse run-time arguments
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # Debug
@@ -20,28 +25,28 @@ def main():
     # Run-time changes
     parser.add_argument('--train', action='store_true', help='Train the network')
     parser.add_argument(
-        '--threshold', type=float, default=0.65, help='Threshold for cutting output'
+        '--threshold', type=float, default=0.65, help='Threshold for cutting retrieval output'
+    )
+    parser.add_argument(
+        '--k', type=int, default=1000, help='Number of images to run tests on'
     )
 
     # Paths to image folders
     parser.add_argument('--train-path', type=str, default='./train', help='Path to training data')
     parser.add_argument('--test-path', type=str, default='./test', help='Path to testing data')
-    parser.add_argument(
-        '--validate-path', type=str, default='./validate', help='Path to validation data'
-    )
 
     # Paths to pre-trained data
     parser.add_argument(
         '--features', type=str, default='./features/features.pickle',
-        help='Path to optional custom pre-computed feature values'
+        help='Path to pre-computed feature values'
     )
     parser.add_argument(
         '--feature-model', type=str, default='./models/features.ckpt',
-        help='Path to optional custom pre-trained feature model'
+        help='Path to pre-trained feature model'
     )
     parser.add_argument(
         '--retrieval-model', type=str, default='./models/retrieval.ckpt',
-        help='Path to optional custom pre-trained retrieval model'
+        help='Path to pre-trained retrieval model'
     )
 
     # Training parameters
@@ -63,16 +68,16 @@ def main():
     # System parameters. When changing these, the system must be re-built
     parser.add_argument(
         '--label-threshold', type=float, default=0.01,
-        help='How big percentage of images should use a label for it to activate. %s' %
-             rebuild_system_warning
+        help='How big percentage of images a label is used by for it to activate. This is done \
+             for the model to fit into memory %s' % rebuild_system_warning
     )
     parser.add_argument(
         '--image-size', type=int, default=192,
-        help='Resize images to quadrat of this size. %s' % rebuild_system_warning
+        help='Resize images to quadrats of this size %s' % rebuild_system_warning
     )
     parser.add_argument(
         '--number-of-channels', type=int, default=3,
-        help='Number of channels in images. %s' % rebuild_system_warning
+        help='Number of channels in images %s. 3 for RGB' % rebuild_system_warning
     )
 
     # Options for re-building the system
@@ -85,33 +90,34 @@ def main():
 
     args = parser.parse_args()
 
+    # Toggle debug if wanted
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
 
-    # Make sure we have generated a list of train IDS and their labels stored in a pickle
+    # Fetch training labels
     train_labels = generate_dict_from_directory(args.train_path)
 
-    # Train feature model
+    # Train feature model if wanted
     if args.train_feature_model:
         train_feature_model(train_labels, args)
 
         sys.exit(0)
 
-    # Generate features
+    # Generate features if wanted
     if args.generate_features:
         generate_features(args)
 
         sys.exit(0)
 
-    # Optionally train the network
+    # Train the model if wanted
     if args.train:
         train(args)
 
         sys.exit(0)
 
-    # Make sure we have generated a list of test IDS and their labels stored in a pickle
+    # Fetch testing labels
     test_labels = generate_dict_from_directory(args.test_path)
 
     # Collect all labels

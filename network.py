@@ -14,24 +14,57 @@ class Layer:
 
 
 def setup_weights(shape):
+    """
+    Set up weights for use in network
+
+    :param shape: Shape of the weights
+    :return: Weights
+    """
+
     return tf.Variable(tf.truncated_normal(shape, stddev=1e-1, dtype=tf.float32))
 
 
-def setup_biases(length, start_value=0.0):
-    return tf.Variable(tf.constant(start_value, shape=[length], dtype=tf.float32), trainable=True)
+def setup_biases(length, initial_value=0.0):
+    """
+    Set up biases for use in network
+
+    :param length: Number of values
+    :param initial_value: Initial value of the biases
+    :return:
+    """
+
+    return tf.Variable(
+        tf.constant(initial_value, shape=[length], dtype=tf.float32), trainable=True
+    )
 
 
 def setup_convolutional_layer(x, filter_size, num_inputs, num_filters, s=1, k=2,
                               use_pooling=True):
+    """
+    Set up layer for use in convolutional network
+
+    :param x: Input layer
+    :param filter_size: Filter size
+    :param num_inputs: Number of layer input values
+    :param num_filters: Number of filters
+    :param s: Stride size
+    :param k: Depth
+    :param use_pooling: Whether to pool the layer
+    :return: Convolutional layer
+    """
+
+    # Shape of layer
     shape = [filter_size, filter_size, num_inputs, num_filters]
 
-    weights = setup_weights(shape=shape)
-    biases = setup_biases(length=num_filters)
+    # Set up layer weights and biases
+    weights = setup_weights(shape)
+    biases = setup_biases(num_filters)
 
+    # Construct the layer and add biases
     layer = tf.nn.conv2d(input=x, filter=weights, strides=[1, s, s, 1], padding='SAME')
-
     layer += biases
 
+    # Activate pooling if wanted. If not, apply the ReLU function
     if use_pooling:
         layer = tf.nn.max_pool(
             value=layer, ksize=[1, k, k, 1], strides=[1, k, k, 1], padding='SAME'
@@ -43,39 +76,69 @@ def setup_convolutional_layer(x, filter_size, num_inputs, num_filters, s=1, k=2,
 
 
 def flatten_layer(layer):
+    """
+    Flatten a convolutional layer
+
+    :param layer: Layer to flatten
+    :return: Flattened layer
+    """
+
+    # Get layer shape
     layer_shape = layer.get_shape()
 
+    # Extract number of features and flatten layer
     number_of_features = layer_shape[1:4].num_elements()
-
     layer_flat = tf.reshape(layer, [-1, number_of_features])
 
     return layer_flat, number_of_features
 
 
 def setup_fully_connected_layer(x, num_inputs, num_outputs, use_relu=True):
-    weights = setup_weights(shape=[num_inputs, num_outputs])
-    biases = setup_biases(length=num_outputs, start_value=1.0)
+    """
+    Set up fully connected layer for use in convolutional network
 
+    :param x: Input layer
+    :param num_inputs: Number of layer input values
+    :param num_outputs: Number of layer output values
+    :param use_relu: Whether to use the ReLU activation function
+    :return: Fully connected layer layer
+    """
+
+    # Set up weights and biases
+    weights = setup_weights([num_inputs, num_outputs])
+    biases = setup_biases(num_outputs, 1.0)
+
+    # Construct layer
     layer = tf.matmul(x, weights) + biases
 
+    # Apply the ReLU function if wanted
     if use_relu:
         layer = tf.nn.relu(layer)
 
     return layer
 
 
-def setup_layer(i, o, x, a):
+def setup_layer(x, input_size, output_size, activation=None):
+    """
+    Set up layer for use in feedforward network
+
+    :param x: Input layer
+    :param input_size: Number of layer input values
+    :param output_size: Number of layer output values
+    :param activation: Layer activation function
+    :return: Convolutional layer
+    """
+
+    # Set up and add weights and biases
     output = tf.add(
-        tf.matmul(
-            x, tf.Variable(tf.random_normal([i, o]))
-        ),
-        tf.Variable(tf.random_normal([o]))
+        tf.matmul(x, setup_weights([input_size, output_size])),
+        setup_biases(output_size)
     )
 
-    if a is None:
+    if activation is None:
         return output
 
-    return a(output)
+    return activation(output)
 
 
 def setup_convolutional_network(input_size, output_size, args):
@@ -138,7 +201,7 @@ def setup_convolutional_network(input_size, output_size, args):
 
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 
-    return x, y, layer_fc4, layer_fc3, cost, optimizer
+    return x, y, layer_fc3, cost, optimizer
 
 
 def setup_network(input_size, output_size, hidden_layers, args, train=False):
@@ -148,32 +211,31 @@ def setup_network(input_size, output_size, hidden_layers, args, train=False):
     y = tf.placeholder(tf.float32, [None, output_size], name='y')
 
     previous_layer = setup_layer(
-        input_size, hidden_layers[0].output_size, x, hidden_layers[0].activation
+        x, input_size, hidden_layers[0].output_size, hidden_layers[0].activation
     )
 
     for i in range(1, len(hidden_layers)):
         previous_layer = setup_layer(
-            hidden_layers[i - 1].output_size, hidden_layers[i].output_size,
-            previous_layer, hidden_layers[i].activation
+            previous_layer, hidden_layers[i - 1].output_size, hidden_layers[i].output_size,
+            hidden_layers[i].activation
         )
 
     last_layer = setup_layer(
-        hidden_layers[-1].output_size, output_size, previous_layer, None
+        previous_layer, hidden_layers[-1].output_size, output_size
     )
 
-    if train:
-        output_layer = tf.nn.softmax(last_layer)
-
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(tf.nn.softmax(output_layer), y))
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+        tf.nn.softmax(tf.nn.softmax(last_layer)), y)
+    )
     optimizer = tf.train.AdamOptimizer(learning_rate=args.learning_rate).minimize(cost)
 
-    return x, y, output_layer, last_layer, cost, optimizer
+    return x, y, last_layer, cost, optimizer
 
 
 def run_network(network, model_name, args, train=True, training_data=None, value=None,
                 testing_data=None, save_path=None):
     with tf.Session() as sess:
-        x, y, train_layer, test_layer, cost_function, optimizer = network
+        x, y, test_layer, cost_function, optimizer = network
 
         sess.run(tf.initialize_all_variables())
 
@@ -206,7 +268,7 @@ def run_network(network, model_name, args, train=True, training_data=None, value
 
                 for i in range(0, len(value), args.batch_size):
                     res.extend(np.squeeze(sess.run(
-                        [train_layer], feed_dict={x: value[i:i+args.batch_size]}
+                        [test_layer], feed_dict={x: value[i:i+args.batch_size]}
                     )))
 
                 return res

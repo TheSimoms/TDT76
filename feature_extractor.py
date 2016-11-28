@@ -17,6 +17,13 @@ from network import (
 
 
 def feature_network(args):
+    """
+    Set up feature extractor Tensorflow network
+
+    :param args: Run-time arguments
+    :return: Tensorflow network
+    """
+
     return setup_convolutional_network(
         (args.image_size ** 2) * args.number_of_channels,
         get_number_of_labels(generate_dict_from_directory(args.train_path), args), args
@@ -25,23 +32,26 @@ def feature_network(args):
 
 def compute_features(images, args):
     """
-    Compute feature values for image.
+    Compute feature values for images
 
-    :param image_id: ID of query image
+    :param images: List of images to compute features for
     :param args: Run-time arguments
-    :return: Feature layer values for query image
+    :return: Feature layer values for images
     """
 
+    # Verify that pre-trained feature model exist
     if not os.path.exists(args.feature_model):
         logging.critical('Checkpoint %s does not exist' % args.feature_model)
 
         sys.exit(1)
 
     with tf.Graph().as_default():
+        # Pre-process images
         input_images = [
             preprocess_image('%s/%s.jpg' % (path, image_id), args) for path, _, image_id in images
         ]
 
+        # Run pre-processed images through network
         return run_network(
             feature_network(args), args.feature_model, args, train=False, value=input_images
         )
@@ -49,55 +59,68 @@ def compute_features(images, args):
 
 def generate_features(args):
     """
-    Generate and save feature values for all images in given paths.
+    Generate and save feature values for all images in training path
 
-    :param paths: Paths containing the images
-    :return: Dict <K: image ID, V: features>
+    :param args: Run-time arguments
     """
 
     log_header('Generating features')
 
     images = []
 
+    # Add all images in training path
     for image_path, _, image_id in get_images_in_path(args.train_path):
         images.append((image_path, image_id))
 
+    # Generate features for all images
     run_network(
         feature_network(args), args.feature_model, args,
         train=False, testing_data=images, save_path=args.features
     )
 
 
-def get_features(images, path, args):
+def get_features(images, args):
     """
-    Fetch or generate feature values for image.
+    Fetch or generate feature values for images
 
-    :param image_id: ID of query image
-    :param path: Path where image is located
+    :param images: Images to fetch feature values for
     :param args: Run-time arguments
-    :return: Features
+    :return: List of feature values for images
     """
 
-    return compute_features(((path, None, image_id) for image_id in images), args)
+    return compute_features(
+        (('%s/pics' % args.test_path, None, image_id) for image_id in images), args
+    )
 
 
 def generate_training_batch(**kwargs):
+    """
+    Generate batch of training data to use when training the feature extractor
+
+    :param kwargs: Keyword arguments
+    :return: Input values and corresponding expected output values for the training batch
+    """
+
     label_dict = kwargs.get('label_dict')
     args = kwargs.get('args')
 
+    # Fetch all labels in training path and set up a list with one zero value for each label
     labels = get_sorted_labels(label_dict, args)
-    images = get_random_sample_of_images_in_path(args.train_path, label_dict, args)
-
     label_list = [0.0] * len(labels)
+
+    # Fetch a random sample of images from the training path
+    images = get_random_sample_of_images_in_path(args.train_path, label_dict, args)
 
     logging.debug('Generating batch')
 
     inputs = []
     outputs = []
 
+    # Generate input and output values for each image
     for image_path, _, image_id in images:
         output = list(label_list)
 
+        # Set values corresponding labels in image to its respective confidence
         for label, confidence in label_dict[image_id]:
             if label in labels:
                 output[labels.index(label)] = confidence
@@ -110,7 +133,10 @@ def generate_training_batch(**kwargs):
 
 def train_feature_model(label_dict, args):
     """
-    Train feature extractor model.
+    Train the feature extractor
+
+    :param label_dict: Dictionary containing labels (and their confidence)
+    :param args: Run-time arguments
     """
 
     log_header('Training feature model')

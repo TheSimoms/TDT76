@@ -75,7 +75,7 @@ def generate_features(args):
     # Generate features for all images
     run_network(
         feature_network(args), args.feature_model, args,
-        train=False, testing_data=images, save_path=args.features
+        train=False, generating_data=images, save_path=args.features
     )
 
 

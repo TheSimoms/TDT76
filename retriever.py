@@ -19,9 +19,11 @@ def retrieval_network(args):
     :return: Tensorflow network
     """
 
+    number_of_labels = get_number_of_labels(generate_dict_from_directory(args.train_path), args)
+
     return setup_network(
-        get_number_of_labels(generate_dict_from_directory(args.train_path), args),
-        get_number_of_images(args.train_path), [Layer(512), Layer(512)], args
+        number_of_labels,
+        get_number_of_images(args.train_path), [Layer(number_of_labels*2), Layer(2048)], args
     )
 
 

@@ -195,7 +195,7 @@ def setup_convolutional_network(input_size, output_size, args):
         x=layer_flat, input_size=num_features, output_size=fc_size1
     )
     full_layer_2 = setup_fully_connected_layer(
-        x=full_layer_1, input_size=fc_size2, output_size=output_size
+        x=full_layer_1, input_size=fc_size1, output_size=output_size
     )
     full_layer_3 = setup_fully_connected_layer(
         x=full_layer_2, input_size=output_size, output_size=output_size, use_relu=False

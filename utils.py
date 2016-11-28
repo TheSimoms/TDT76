@@ -22,7 +22,7 @@ def generate_dict_from_directory(path):
     """
     Go through a full directory of .txt-files, and transform the .txt into dict.
     Create a combo of all the txt-files which is saved in a pickle.
-    Also save a small .pickle per txt-file.
+    Also save a small .pickle per txt-file
 
     :param path: Path where data is stored
     :return: A dict
@@ -52,7 +52,7 @@ def generate_dict_from_text_file(filename):
     """
     The workhorse of the previous def; take a single text file and store its content
     into a dict. The dict is defined using image IDs as keys, and a vector of
-    (label, belief) - tuples as value.
+    (label, belief) - tuples as value
 
     :param filename: Name of the .txt to read
     :return: The dict
@@ -93,10 +93,10 @@ def generate_dict_from_text_file(filename):
 
 def get_images_in_path(path):
     """
-    Return path name and file name for all image files in path.
+    Return path name, file name and image ID for all image files in path
 
     :param path: Path to search
-    :return: List of tuples (path, filename)
+    :return: List of tuples (path, filename, image ID) for each image in path
     """
 
     logging.debug('Fetching images in path %s' % path)
@@ -113,12 +113,14 @@ def get_images_in_path(path):
 
 def get_random_sample_of_images_in_path(path, label_dict, args):
     """
-    Return path name and file name for all image files in path.
+    Get random sample of images in path
 
-    :param path: Path to search
-    :return: List of tuples (path, filename)
+    :param header: Path to images
+    :param label_dict: Dictionary containing labels for images
+    :return: List of tuples (path, filename, filename) for each image in path
     """
 
+    # Get
     images = get_images_in_path(path)
     res = set()
 
@@ -133,21 +135,26 @@ def get_random_sample_of_images_in_path(path, label_dict, args):
 
 def get_sorted_labels(label_dict, args):
     """
-    Get the number of different labels.
+    Get sorted list of labels
 
-    :param header: Path to images
-    :return: Number of labels
+    :param label_dict: Dictionary containing labels for images
+    :return: Sorted list of labels
     """
 
     number_of_images = len(label_dict)
 
+    # List of labels
     label_list = list()
+
+    # Dictionary containing number of occurrences for each label
     counts = defaultdict(int)
 
+    # Iterate all images, update label counts
     for _, labels in label_dict.items():
         for label, _ in labels:
             counts[label] += 1
 
+    # Iterate all labels, remove labels that are too rare. This is done to speed up computations
     for label in counts:
         usage = counts[label] / number_of_images * 100
 
@@ -159,9 +166,9 @@ def get_sorted_labels(label_dict, args):
 
 def get_number_of_labels(label_dict, args):
     """
-    Get the number of different labels.
+    Get the number of different labels
 
-    :param header: Path to images
+    :param label_dict: Dictionary containing labels for images
     :return: Number of labels
     """
 
@@ -169,12 +176,19 @@ def get_number_of_labels(label_dict, args):
 
 
 def get_sorted_image_ids(path):
+    """
+    Get sorted list of image IDs in path
+
+    :param header: Path to images
+    :return: Sorted list of image IDs
+    """
+
     return sorted(generate_dict_from_directory(path).keys())
 
 
 def get_number_of_images(path):
     """
-    Get the number of images.
+    Get the number of images in path
 
     :param header: Path to images
     :return: Number of images
@@ -185,7 +199,7 @@ def get_number_of_images(path):
 
 def log_header(header):
     """
-    Display header, separated by lines of equality symbols.
+    Display header, separated by lines of equality symbols
 
     :param header: Header to display
     """
@@ -196,6 +210,14 @@ def log_header(header):
 
 
 def read_pickle(filename, vital=True):
+    """
+    Read pickle file
+
+    :param filename: Filename to save value as
+    :param vital: Whether to exit the program when file not found
+    :return: Value or None if file not found
+    """
+
     if not os.path.exists(filename):
         if vital:
             logging.critical('Vital file %s does not exist. Aborting' % filename)
@@ -209,16 +231,23 @@ def read_pickle(filename, vital=True):
 
 
 def save_pickle(value, filename):
+    """
+    Save value to pickle file
+
+    :param value: Value to save
+    :param filename: Filename to save value as
+    """
+
     with open(filename, 'wb') as f:
         return pickle.dump(value, f)
 
 
 def preprocess_image(image_path, args):
     """
-    Load and preprocess an image.
+    Load and preprocess an image
 
     :param image_path: Path to an image
-    :param central_fraction: Do a central crop with the specified fraction of image covered.
+    :param args: Run-time arguments
     :return: An ops.Tensor that produces the preprocessed image.
     """
 

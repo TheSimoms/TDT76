@@ -38,14 +38,14 @@ def setup_biases(length, initial_value=0.0):
     )
 
 
-def setup_convolutional_layer(x, filter_size, num_inputs, num_filters, s=1, k=2,
+def setup_convolutional_layer(x, filter_size, input_size, num_filters, s=1, k=2,
                               use_pooling=True):
     """
     Set up layer for use in convolutional network
 
     :param x: Input layer
     :param filter_size: Filter size
-    :param num_inputs: Number of layer input values
+    :param input_size: Number of layer input values
     :param num_filters: Number of filters
     :param s: Stride size
     :param k: Depth
@@ -54,7 +54,7 @@ def setup_convolutional_layer(x, filter_size, num_inputs, num_filters, s=1, k=2,
     """
 
     # Shape of layer
-    shape = [filter_size, filter_size, num_inputs, num_filters]
+    shape = [filter_size, filter_size, input_size, num_filters]
 
     # Set up layer weights and biases
     weights = setup_weights(shape)
@@ -93,20 +93,20 @@ def flatten_layer(layer):
     return layer_flat, number_of_features
 
 
-def setup_fully_connected_layer(x, num_inputs, num_outputs, use_relu=True):
+def setup_fully_connected_layer(x, input_size, output_size, use_relu=True):
     """
     Set up fully connected layer for use in convolutional network
 
     :param x: Input layer
-    :param num_inputs: Number of layer input values
-    :param num_outputs: Number of layer output values
+    :param input_size: Number of layer input values
+    :param output_size: Number of layer output values
     :param use_relu: Whether to use the ReLU activation function
     :return: Fully connected layer layer
     """
 
     # Set up weights and biases
-    weights = setup_weights([num_inputs, num_outputs])
-    biases = setup_biases(num_outputs, 1.0)
+    weights = setup_weights([input_size, output_size])
+    biases = setup_biases(output_size, 1.0)
 
     # Construct layer
     layer = tf.matmul(x, weights) + biases
@@ -129,143 +129,196 @@ def setup_layer(x, input_size, output_size, activation=None):
     :return: Convolutional layer
     """
 
-    # Set up and add weights and biases
+    # Set up and add weights and biases, multiply weights and input values, and add biases
     output = tf.add(
         tf.matmul(x, setup_weights([input_size, output_size])),
         setup_biases(output_size)
     )
 
+    # Return layer if noe activation function is supplied
     if activation is None:
         return output
 
+    # Return activated layer
     return activation(output)
 
 
 def setup_convolutional_network(input_size, output_size, args):
+    """
+    Set up and return convolutional network
+
+    :param input_size: Number of layer input values
+    :param output_size: Number of layer output values
+    :param args: Run-time arguments
+    :return: Convolutional network
+    """
+
     logging.debug('Setting up convolutional network')
 
+    # Placeholders for input and output variables
     x = tf.placeholder(tf.float32, [None, input_size], name='x')
     y = tf.placeholder(tf.float32, [None, output_size], name='y')
 
+    # Reshape image
     x_image = tf.reshape(x, [-1, args.image_size, args.image_size, args.number_of_channels])
 
+    # Network parameters
     filter_size1 = 5
     num_filters1 = 64
-
     filter_size2 = 10
     num_filters2 = 128
-
     fc_size1 = 256
     fc_size2 = 512
 
-    layer1_1 = setup_convolutional_layer(
-        x=x_image, filter_size=filter_size1, num_inputs=args.number_of_channels,
+    # Set up the convolutional layers
+    conv_layer_1_1 = setup_convolutional_layer(
+        x=x_image, filter_size=filter_size1, input_size=args.number_of_channels,
         num_filters=num_filters1, use_pooling=False
     )
-
-    layer1_2 = setup_convolutional_layer(
-        x=layer1_1, filter_size=filter_size1, num_inputs=num_filters1,
+    conv_layer_1_2 = setup_convolutional_layer(
+        x=conv_layer_1_1, filter_size=filter_size1, input_size=num_filters1,
         num_filters=num_filters1, use_pooling=True
     )
-
-    layer2_1 = setup_convolutional_layer(
-        x=layer1_2, filter_size=filter_size2, num_inputs=num_filters1,
+    conv_layer_2_1 = setup_convolutional_layer(
+        x=conv_layer_1_2, filter_size=filter_size2, input_size=num_filters1,
         num_filters=num_filters2, use_pooling=False
     )
-
-    layer2_2 = setup_convolutional_layer(
-        x=layer2_1, filter_size=filter_size2, num_inputs=num_filters2,
+    conv_layer_2_2 = setup_convolutional_layer(
+        x=conv_layer_2_1, filter_size=filter_size2, input_size=num_filters2,
         num_filters=num_filters2, use_pooling=True
     )
 
-    layer_flat, num_features = flatten_layer(layer2_2)
+    layer_flat, num_features = flatten_layer(conv_layer_2_2)
 
-    layer_fc1 = setup_fully_connected_layer(
-        x=layer_flat, num_inputs=num_features, num_outputs=fc_size1
+    # Set up the fully connected layers
+    full_layer_1 = setup_fully_connected_layer(
+        x=layer_flat, input_size=num_features, output_size=fc_size1
+    )
+    full_layer_2 = setup_fully_connected_layer(
+        x=full_layer_1, input_size=fc_size1, output_size=fc_size2
+    )
+    full_layer_3 = setup_fully_connected_layer(
+        x=full_layer_2, input_size=fc_size2, output_size=output_size
+    )
+    full_layer_4 = setup_fully_connected_layer(
+        x=full_layer_3, input_size=output_size, output_size=output_size, use_relu=False
     )
 
-    layer_fc2 = setup_fully_connected_layer(
-        x=layer_fc1, num_inputs=fc_size1, num_outputs=fc_size2
-    )
-
-    layer_fc3 = setup_fully_connected_layer(
-        x=layer_fc2, num_inputs=fc_size2, num_outputs=output_size
-    )
-
-    layer_fc4 = setup_fully_connected_layer(
-        x=layer_fc3, num_inputs=output_size, num_outputs=output_size, use_relu=False
-    )
-
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_fc4, labels=y)
+    # Calculate cross entropy, reduce its mean, and optimize
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=full_layer_4, labels=y)
     cost = tf.reduce_mean(cross_entropy)
-
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 
-    return x, y, layer_fc3, cost, optimizer
+    return x, y, full_layer_3, cost, optimizer
 
 
-def setup_network(input_size, output_size, hidden_layers, args, train=False):
+def setup_network(input_size, output_size, hidden_layers, args):
+    """
+    Set up and return feedforward network
+
+    :param input_size: Number of layer input values
+    :param output_size: Number of layer output values
+    :param hidden_layers: Hidden layers
+    :param args: Run-time arguments
+    :return: Feedforward network
+    """
+
     logging.debug('Setting up network')
 
+    # Placeholders for input and output variables
     x = tf.placeholder(tf.float32, [None, input_size], name='x')
     y = tf.placeholder(tf.float32, [None, output_size], name='y')
 
+    # Set up first hidden layer
     previous_layer = setup_layer(
         x, input_size, hidden_layers[0].output_size, hidden_layers[0].activation
     )
 
+    # Set up the other hidden layers
     for i in range(1, len(hidden_layers)):
         previous_layer = setup_layer(
             previous_layer, hidden_layers[i - 1].output_size, hidden_layers[i].output_size,
             hidden_layers[i].activation
         )
 
+    # Set up the output layer
     last_layer = setup_layer(
         previous_layer, hidden_layers[-1].output_size, output_size
     )
 
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-        tf.nn.softmax(tf.nn.softmax(last_layer)), y)
-    )
+    # Calculate softmax on the output layer
+    output_layer = tf.nn.softmax(tf.nn.tanh(last_layer))
+
+    # Calculate cross entropy, reduce its mean, and optimize
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=y)
+    cost = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate=args.learning_rate).minimize(cost)
 
-    return x, y, last_layer, cost, optimizer
+    return x, y, output_layer, cost, optimizer
 
 
 def run_network(network, model_name, args, train=True, training_data=None, value=None,
-                testing_data=None, save_path=None):
+                generating_data=None, save_path=None):
+    """
+    Run a neural network. Can either train weights, evaluate input values, or generate new features
+    for images.
+
+    When generating features, the features are saved in batches to pickle files
+
+    :param network: Network to run
+    :param model_name: Name of the checkpoint file. Either for saving or loading weights
+    :param args: Run-time arguments
+    :param train: Whether to train or evaluate
+    :param training_data: Data used for training
+    :param value: Value used for evaluating
+    :param generating_data: Data used for generating new features
+    :param save_path: Path to save new features
+    :return: Evaluated value
+    """
+
+    # Set up session
     with tf.Session() as sess:
+        # Extract variables from network
         x, y, test_layer, cost_function, optimizer = network
 
+        # Initial variables and set up saver
         sess.run(tf.initialize_all_variables())
-
         saver = tf.train.Saver()
 
+        # Enable training if wanted
         if train:
             logging.info('Training model')
 
+            # Iterate training epochs
             for epoch in range(args.training_epochs):
                 log_header('Epoch: %d' % epoch)
 
+                # Iterate batches in epoch
                 for batch in range(0, args.number_of_batches):
                     logging.info('Epoch: %d. Batch: %d' % (epoch, batch))
 
+                    # Generate training batch
                     x_, y_ = training_data[0](**training_data[1])
 
+                    # Run the optimizer
                     sess.run([optimizer, cost_function], feed_dict={x: x_, y: y_})
 
             logging.info('Training complete. Saving model')
 
+            # Save trained weights
             saver.save(sess, model_name)
 
             logging.debug('Model saved to %s' % model_name)
         else:
+            # Import and restore trained weights
             saver = tf.train.import_meta_graph('%s.meta' % model_name)
             saver.restore(sess, model_name)
 
+            # Evaluate value if supplied
             if value is not None:
                 res = []
 
+                # Evaluate in batches in order not to deplete memory
                 for i in range(0, len(value), args.batch_size):
                     res.extend(np.squeeze(sess.run(
                         [test_layer], feed_dict={x: value[i:i+args.batch_size]}
@@ -273,37 +326,45 @@ def run_network(network, model_name, args, train=True, training_data=None, value
 
                 return res
 
+            # Set up batches for saving features
             save_batch_number_of_batches = 50
             save_batch_size = args.batch_size * save_batch_number_of_batches
-            total_testing_data = len(testing_data)
+            total_testing_data = len(generating_data)
             total_save_batches = math.ceil(total_testing_data / save_batch_size)
 
+            # Iterate every feature saving batch
             for save_batch_number in range(total_save_batches):
                 logging.error('Batch %d of %d' % (save_batch_number + 1, total_save_batches))
 
+                # Set up batch variables
                 save_batch_offset = save_batch_number * save_batch_size
-
                 save_batch_name = '%s.%d' % (args.features, save_batch_number)
                 save_batch_features = {}
 
+                # Iterate smaller batches
                 for batch_number in range(save_batch_number_of_batches):
                     batch_offset = save_batch_offset + batch_number * save_batch_number_of_batches
 
                     if batch_offset >= total_testing_data:
                         break
 
-                    batch = testing_data[batch_offset:batch_offset+save_batch_number_of_batches]
+                    # Extract training batch
+                    batch = generating_data[batch_offset:batch_offset+save_batch_number_of_batches]
                     inputs = []
 
+                    # Pre-process images in batch
                     for image_path, image_id in batch:
                         inputs.append(preprocess_image('%s/%s.jpg' % (image_path, image_id), args))
 
+                    # Generate features
                     features = np.squeeze(sess.run([test_layer], feed_dict={x: inputs}))
 
+                    # Add features to batch
                     for i in range(len(batch)):
                         _, image_id = batch[i]
 
                         save_batch_features[image_id] = features[i]
 
+                # Save batch to file
                 with open(save_batch_name, 'wb') as f:
                     pickle.dump(save_batch_features, f)

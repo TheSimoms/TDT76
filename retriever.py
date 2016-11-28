@@ -11,6 +11,13 @@ from network import Layer, setup_network, run_network
 from feature_extractor import get_features
 
 
+def retrieval_network(args):
+    return setup_network(
+        get_number_of_labels(generate_dict_from_directory(args.train_path), args),
+        get_number_of_images(args.train_path), [Layer(512), Layer(512)], args
+    )
+
+
 def generate_training_batch(**kwargs):
     """
     Generate data set used for training the model.
@@ -50,13 +57,8 @@ def generate_training_batch(**kwargs):
 
 
 def train_retriever(args):
-    network = setup_network(
-        get_number_of_labels(generate_dict_from_directory(args.train_path), args),
-        get_number_of_images(args.train_path), [Layer(512), Layer(512)], args
-    )
-
     run_network(
-        network, args.retrieval_model, args, training_data=(
+        retrieval_network(args), args.retrieval_model, args, training_data=(
             generate_training_batch, {'args': args}
         ),
     )
@@ -78,15 +80,10 @@ def retrieve_similar_images(queries, path, args):
 
     features = get_features(queries, path, args)
 
-    network = setup_network(
-        get_number_of_labels(generate_dict_from_directory(args.train_path), args),
-        get_number_of_images(args.train_path), [Layer(512), Layer(512)], args
-    )
-
     logging.info('Calculating image similarities')
 
     output_layers = run_network(
-        network, args.retrieval_model, args,
+        retrieval_network(args), args.retrieval_model, args,
         train=False, value=features
     )
 

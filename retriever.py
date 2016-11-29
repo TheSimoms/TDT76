@@ -22,8 +22,8 @@ def retrieval_network(args):
     number_of_labels = get_number_of_labels(generate_dict_from_directory(args.train_path), args)
 
     return setup_network(
-        number_of_labels,
-        get_number_of_images(args.train_path), [Layer(number_of_labels*2), Layer(2048)], args
+        number_of_labels, get_number_of_images(args.train_path),
+        [Layer(number_of_labels*2), Layer(number_of_labels*3)], args
     )
 
 
@@ -120,12 +120,13 @@ def retrieve_similar_images(query, args):
 
         # Parse network output
         retrieved = output_layers[i]
-        min_value = np.amin(retrieved)
-
-        if min_value < 0:
-            retrieved -= np.amin(retrieved)
-
         retrieved /= np.amax(retrieved)
+
+        print(list(retrieved))
+
+        import sys
+        sys.exit(0)
+
         top_indices = retrieved.argsort()[::-1][:50]
 
         # Extract most relevant images

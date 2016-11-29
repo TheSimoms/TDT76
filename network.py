@@ -254,7 +254,7 @@ def setup_network(input_size, output_size, hidden_layers, args):
     cost = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate=args.learning_rate).minimize(cost)
 
-    return x, y, output_layer, cost, optimizer
+    return x, y, last_layer, cost, optimizer
 
 
 def run_network(network, model_name, args, train=True, training_data=None, value=None,

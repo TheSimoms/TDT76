@@ -25,7 +25,7 @@ def main():
     # Run-time changes
     parser.add_argument('--train', action='store_true', help='Train the network')
     parser.add_argument(
-        '--threshold', type=float, default=0.65, help='Threshold for cutting retrieval output'
+        '--threshold', type=float, default=0.0, help='Threshold for cutting retrieval output'
     )
     parser.add_argument(
         '--k', type=int, default=1000, help='Number of images to run tests on'

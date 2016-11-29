@@ -1,7 +1,6 @@
 import logging
 import random
 import glob
-import numpy as np
 
 from utils import (
     get_number_of_images, read_pickle, get_number_of_labels,
@@ -120,7 +119,6 @@ def retrieve_similar_images(query, args):
 
         # Parse network output
         retrieved = output_layers[i]
-        retrieved /= np.amax(retrieved)
 
         top_indices = retrieved.argsort()[::-1][:50]
 

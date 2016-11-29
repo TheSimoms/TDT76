@@ -205,7 +205,7 @@ def setup_convolutional_network(input_size, output_size, args):
     output_layer = tf.nn.relu(full_layer_3)
 
     # Calculate cross entropy, reduce its mean, and optimize
-    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(logits=output_layer, labels=y)
+    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(output_layer, y)
     cost = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 
@@ -250,7 +250,7 @@ def setup_network(input_size, output_size, hidden_layers, args):
     output_layer = tf.nn.softmax(last_layer)
 
     # Calculate cross entropy, reduce its mean, and optimize
-    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(logits=output_layer, labels=y)
+    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(output_layer, y)
     cost = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate=args.learning_rate).minimize(cost)
 

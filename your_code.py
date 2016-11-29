@@ -32,16 +32,19 @@ def test(label_dict, image_ids, args):
     """
 
     log_header('Starting image retrieval preparations')
-    logging.info('Generating random test queries')
 
     queries = []
 
     if args.test_image is not None:
         queries.append(args.test_image)
     else:
+        logging.info('Generating random test queries')
+
+        number_of_images = len(image_ids)
+
         # Generate random queries to use in the test procedure
         for i in range(args.k):
-            queries.append(image_ids[random.randint(0, len(image_ids) - 1)])
+            queries.append(image_ids[random.randint(0, number_of_images - 1)])
 
     # Calculate score for the retrieved images
     calculate_score(

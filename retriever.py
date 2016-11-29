@@ -127,6 +127,6 @@ def retrieve_similar_images(query, args):
             image_ids[j] for j in top_indices if retrieved[j] > args.threshold
         )
 
-        logging.debug('%s: %d images retrieved' % (image_id, len(res[image_id])))
+        logging.debug('%s: %s' % (image_id, ', '.join(res[image_id])))
 
     return res

@@ -325,9 +325,14 @@ def run_network(network, model_name, args, train=True, training_data=None, value
 
                 # Evaluate in batches in order not to deplete memory
                 for i in range(0, len(value), args.batch_size):
-                    res.extend(np.squeeze(sess.run(
+                    output = np.squeeze(sess.run(
                         [output_layer], feed_dict={x: value[i:i+args.batch_size]}
-                    )))
+                    ))
+
+                    if len(output) != args.batch_size:
+                        output = [output]
+
+                    res.extend(output)
 
                 return res
 

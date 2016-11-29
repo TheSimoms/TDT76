@@ -30,6 +30,9 @@ def main():
     parser.add_argument(
         '--k', type=int, default=1000, help='Number of images to run tests on'
     )
+    parser.add_argument(
+        '--test-image', type=str, help='Run the test on a single image', metavar='Image ID'
+    )
 
     # Paths to image folders
     parser.add_argument('--train-path', type=str, default='./train', help='Path to training data')

@@ -9,7 +9,7 @@ import tensorflow as tf
 
 from utils import (
     preprocess_image, get_images_in_path, generate_dict_from_directory, get_sorted_labels,
-    get_number_of_labels, log_header, get_random_sample_of_images_in_path
+    get_number_of_labels, log_header, get_random_sample_of_images_in_path, get_test_image_paths
 )
 from network import (
     setup_convolutional_network, run_network
@@ -88,8 +88,10 @@ def get_features(images, args):
     :return: List of feature values for images
     """
 
+    image_paths = get_test_image_paths(args)
+
     return compute_features(
-        (('%s/pics' % args.test_path, None, image_id) for image_id in images), args
+        ((image_paths[image_id], None, image_id) for image_id in images), args
     )
 
 

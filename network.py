@@ -201,8 +201,8 @@ def setup_convolutional_network(input_size, output_size, args):
         x=full_layer_2, input_size=fc_size2, output_size=output_size, use_relu=False
     )
 
-    # Calculate ReLU on the output layer
-    output_layer = tf.nn.relu(full_layer_3)
+    # Calculate softmax on the output layer
+    output_layer = tf.nn.softmax(full_layer_3)
 
     # Calculate cross entropy, reduce its mean, and optimize
     cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(output_layer, y)
@@ -246,7 +246,7 @@ def setup_network(input_size, output_size, hidden_layers, args):
         previous_layer, hidden_layers[-1].output_size, output_size
     )
 
-    # Calculate ReLU on the output layer
+    # Calculate softmax on the output layer
     output_layer = tf.nn.softmax(last_layer)
 
     # Calculate cross entropy, reduce its mean, and optimize
@@ -289,26 +289,31 @@ def run_network(network, model_name, args, train=True, training_data=None, value
         if train:
             logging.info('Training model')
 
-            # Iterate training epochs
-            for epoch in range(args.training_epochs):
-                log_header('Epoch: %d' % epoch)
+            try:
+                # Iterate training epochs
+                for epoch in range(args.training_epochs):
+                    log_header('Epoch: %d' % epoch)
 
-                # Iterate batches in epoch
-                for batch in range(0, args.number_of_batches):
-                    logging.info('Epoch: %d. Batch: %d' % (epoch, batch))
+                    # Iterate batches in epoch
+                    for batch in range(0, args.number_of_batches):
+                        logging.info('Epoch: %d. Batch: %d' % (epoch, batch))
 
-                    # Generate training batch
-                    x_, y_ = training_data[0](**training_data[1])
+                        # Generate training batch
+                        x_, y_ = training_data[0](**training_data[1])
 
-                    # Run the optimizer
-                    sess.run([optimizer, cost_function], feed_dict={x: x_, y: y_})
+                        # Run the optimizer
+                        sess.run([optimizer, cost_function], feed_dict={x: x_, y: y_})
 
-            logging.info('Training complete. Saving model')
+                logging.info('Training complete')
+            except KeyboardInterrupt:
+                logging.error('Training aborted')
+            finally:
+                logging.info('Saving model')
 
-            # Save trained weights
-            saver.save(sess, model_name)
+                # Save trained weights
+                saver.save(sess, model_name)
 
-            logging.debug('Model saved to %s' % model_name)
+                logging.debug('Model saved to %s' % model_name)
         else:
             # Import and restore trained weights
             saver = tf.train.import_meta_graph('%s.meta' % model_name)

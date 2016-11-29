@@ -36,9 +36,12 @@ def test(label_dict, image_ids, args):
 
     queries = []
 
-    # Generate random queries to use in the test procedure
-    for i in range(args.k):
-        queries.append(image_ids[random.randint(0, len(image_ids) - 1)])
+    if args.test_image is not None:
+        queries.append(args.test_image)
+    else:
+        # Generate random queries to use in the test procedure
+        for i in range(args.k):
+            queries.append(image_ids[random.randint(0, len(image_ids) - 1)])
 
     # Calculate score for the retrieved images
     calculate_score(

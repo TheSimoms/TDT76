@@ -1,5 +1,5 @@
 features/*.pickle*
-models/*.ckpt
+models/*.ckpt*
 
 train/
 validate/

@@ -91,6 +91,27 @@ def generate_dict_from_text_file(filename):
     return my_dict
 
 
+def get_test_image_paths(args):
+    """
+    Return path names corresponding to images in test path
+
+    :param args: Run-time arguments
+    :return: Dictionary for image paths. Image IDs as keys
+    """
+
+    logging.debug('Fetching test image paths')
+
+    images = {}
+
+    for full_path in glob.glob(args.test_path + '/pics/*/*.jpg'):
+        path, filename = ntpath.split(full_path)
+        image_id = filename.split('.')[0]
+
+        images[image_id] = path
+
+    return images
+
+
 def get_images_in_path(path):
     """
     Return path name, file name and image ID for all image files in path

@@ -3,6 +3,10 @@
 Image retrieval system made for the final exam of the subject TDT76 at the
 Norwegian University of Science and Technology November 2016.
 
+## Disclaimer
+
+The model is really bad.
+
 ## Prerequisites
 
 The system make use of Tensorflow, Numpy and Pillow.
